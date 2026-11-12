@@ -7,7 +7,7 @@ use haversine_generator::generate_data::generate_data;
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
-    let data = generate_data(args.count, args.seed);
+    let data = generate_data(args.count, args.seed, args.cluster);
 
     let mut binary_path = args.json_path.clone();
     binary_path.set_extension("answers.f64");
