@@ -206,11 +206,49 @@ fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
 }
 
 fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
-    todo!()
+    if parser.position >= parser.json.len() || parser.json[parser.position] != '{' {
+        return Err("Invalid object".to_string());
+    }
+
+    parser.position += 1;
+
+    let mut object: HashMap<String, Data> = HashMap::new();
+
+    loop {
+        if parser.position >= parser.json.len() {
+            return Err("Invalid object".to_string());
+        }
+
+        let ch = parser.json[parser.position];
+
+        if ch == ',' || ch == ' ' {
+            parser.position += 1;
+            continue;
+        }
+
+        if ch == '}' {
+            parser.position += 1;
+            return Ok(object);
+        }
+
+        let key = parse_string(parser).map_err(|_| "Invalid object".to_string())?;
+
+        if parser.position >= parser.json.len() || parser.json[parser.position] != ':' {
+            return Err("Invalid object".to_string());
+        }
+
+        parser.position += 1;
+
+        let value = parse_value(parser)?;
+
+        object.insert(key, value);
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crate::json::{self, Data, Number};
 
     fn get_parser(json_string: &str) -> json::Parser {
@@ -321,6 +359,34 @@ mod tests {
                 Data::Bool(true),
                 Data::Array(vec![Data::Float(1.2), Data::String("hi".to_string())]),
             ])
+        );
+    }
+
+    #[test]
+    fn parse_object_empty() {
+        let value = json::parse_object(&mut get_parser("{}"));
+        assert_eq!(value, Ok(HashMap::new()));
+    }
+
+    #[test]
+    fn parse_object() {
+        let value = json::parse_object(&mut get_parser(
+            "{\"Int\": 1, \"Null\": null, \"Bool\": true, \"Array\": [{\"Float\": 1.2}, \"hi\"]}",
+        ));
+        assert_eq!(
+            value,
+            Ok(HashMap::from([
+                ("Int".to_string(), Data::Int(1)),
+                ("Null".to_string(), Data::Null),
+                ("Bool".to_string(), Data::Bool(true)),
+                (
+                    "Array".to_string(),
+                    Data::Array(vec![
+                        Data::Object(HashMap::from([("Float".to_string(), Data::Float(1.2)),])),
+                        Data::String("hi".to_string()),
+                    ]),
+                ),
+            ]))
         );
     }
 }
