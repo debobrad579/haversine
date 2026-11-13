@@ -31,7 +31,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[clap()]
 struct Args {
     count: u32,
