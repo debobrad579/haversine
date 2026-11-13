@@ -18,7 +18,9 @@ fn main() -> Result<(), String> {
         .chars()
         .collect();
 
-    parse_json(json)?;
+    let data = parse_json(json)?;
+
+    println!("{:?}", data);
 
     Ok(())
 }

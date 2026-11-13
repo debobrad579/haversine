@@ -41,7 +41,7 @@ fn parse_value(parser: &mut Parser) -> Result<Data, String> {
         '"' => parse_string(parser).map(Data::String),
         '[' => parse_array(parser).map(Data::Array),
         '{' => parse_object(parser).map(Data::Object),
-        ' ' => {
+        ' ' | '\n' => {
             parser.position += 1;
             parse_value(parser)
         }
@@ -191,7 +191,7 @@ fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
 
         let ch = parser.json[parser.position];
 
-        if ch == ',' {
+        if ch == ',' || ch == ' ' || ch == '\n' {
             parser.position += 1;
             continue;
         }
@@ -221,7 +221,7 @@ fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
 
         let ch = parser.json[parser.position];
 
-        if ch == ',' || ch == ' ' {
+        if ch == ',' || ch == ' ' || ch == '\n' {
             parser.position += 1;
             continue;
         }
