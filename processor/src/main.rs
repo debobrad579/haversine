@@ -10,10 +10,13 @@ fn main() -> Result<(), String> {
         process::exit(1);
     }
 
-    let json = fs::read_to_string(&args[1]).unwrap_or_else(|_| {
-        eprintln!("Failed to read json file");
-        process::exit(1);
-    });
+    let json = fs::read_to_string(&args[1])
+        .unwrap_or_else(|_| {
+            eprintln!("Failed to read json file");
+            process::exit(1);
+        })
+        .chars()
+        .collect();
 
     parse_json(json)?;
 
