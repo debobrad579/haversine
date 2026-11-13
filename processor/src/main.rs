@@ -2,7 +2,7 @@ use std::{env, fs, process};
 
 use haversine_processor::json::parse_json;
 
-fn main() {
+fn main() -> Result<(), String> {
     let args = env::args().collect::<Vec<String>>();
 
     if args.len() != 2 {
@@ -10,10 +10,12 @@ fn main() {
         process::exit(1);
     }
 
-    let json: Vec<char> = fs::read(&args[1]).into().unwrap_or_else(|_| {
+    let json = fs::read_to_string(&args[1]).unwrap_or_else(|_| {
         eprintln!("Failed to read json file");
         process::exit(1);
     });
 
-    parse_json(json);
+    parse_json(json)?;
+
+    Ok(())
 }
