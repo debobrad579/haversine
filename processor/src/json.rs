@@ -26,8 +26,23 @@ pub fn parse_json(json: Vec<char>) -> Result<Data, String> {
     parse_value(Parser { json, position: 0 })
 }
 
-fn parse_value(parser: Parser) -> Result<Data, String> {
-    todo!()
+fn parse_value(mut parser: Parser) -> Result<Data, String> {
+    if parser.position >= parser.json.len() {
+        return Err("Invalid value".to_string());
+    }
+
+    match parser.json[parser.position] {
+        'n' | 'N' => parse_null(&mut parser).map(|_| Data::Null),
+        't' | 'T' | 'f' | 'F' => parse_bool(&mut parser).map(Data::Bool),
+        '0'..='9' => parse_number(&mut parser).map(|number| match number {
+            Number::Int(number) => Data::Int(number),
+            Number::Float(number) => Data::Float(number),
+        }),
+        '"' => parse_string(&mut parser).map(Data::String),
+        '[' => parse_array(&mut parser).map(Data::Array),
+        '{' => parse_object(&mut parser).map(Data::Object),
+        _ => return Err("Invalid value".to_string()),
+    }
 }
 
 fn parse_null(parser: &mut Parser) -> Result<(), String> {
@@ -156,11 +171,11 @@ fn parse_string(parser: &mut Parser) -> Result<String, String> {
     }
 }
 
-fn parse_array() -> Result<Vec<Data>, String> {
+fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
     todo!()
 }
 
-fn parse_object() -> Result<HashMap<String, Data>, String> {
+fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
     todo!()
 }
 
