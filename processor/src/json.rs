@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Data {
     Null,
     Bool(bool),
@@ -23,25 +23,29 @@ struct Parser {
 }
 
 pub fn parse_json(json: Vec<char>) -> Result<Data, String> {
-    parse_value(Parser { json, position: 0 })
+    parse_value(&mut Parser { json, position: 0 })
 }
 
-fn parse_value(mut parser: Parser) -> Result<Data, String> {
+fn parse_value(parser: &mut Parser) -> Result<Data, String> {
     if parser.position >= parser.json.len() {
         return Err("Invalid value".to_string());
     }
 
     match parser.json[parser.position] {
-        'n' | 'N' => parse_null(&mut parser).map(|_| Data::Null),
-        't' | 'T' | 'f' | 'F' => parse_bool(&mut parser).map(Data::Bool),
-        '0'..='9' => parse_number(&mut parser).map(|number| match number {
+        'n' | 'N' => parse_null(parser).map(|_| Data::Null),
+        't' | 'T' | 'f' | 'F' => parse_bool(parser).map(Data::Bool),
+        '0'..='9' => parse_number(parser).map(|number| match number {
             Number::Int(number) => Data::Int(number),
             Number::Float(number) => Data::Float(number),
         }),
-        '"' => parse_string(&mut parser).map(Data::String),
-        '[' => parse_array(&mut parser).map(Data::Array),
-        '{' => parse_object(&mut parser).map(Data::Object),
-        _ => return Err("Invalid value".to_string()),
+        '"' => parse_string(parser).map(Data::String),
+        '[' => parse_array(parser).map(Data::Array),
+        '{' => parse_object(parser).map(Data::Object),
+        ' ' => {
+            parser.position += 1;
+            parse_value(parser)
+        }
+        ch => return Err(format!("Invalid character: {}", ch)),
     }
 }
 
@@ -147,7 +151,7 @@ fn parse_number(parser: &mut Parser) -> Result<Number, String> {
 }
 
 fn parse_string(parser: &mut Parser) -> Result<String, String> {
-    if parser.json[parser.position] != '"' {
+    if parser.position >= parser.json.len() || parser.json[parser.position] != '"' {
         return Err("Invalid string".to_string());
     }
 
@@ -172,7 +176,33 @@ fn parse_string(parser: &mut Parser) -> Result<String, String> {
 }
 
 fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
-    todo!()
+    if parser.position >= parser.json.len() || parser.json[parser.position] != '[' {
+        return Err("Invalid array".to_string());
+    }
+
+    parser.position += 1;
+
+    let mut array: Vec<Data> = vec![];
+
+    loop {
+        if parser.position >= parser.json.len() {
+            return Err("Invalid array".to_string());
+        }
+
+        let ch = parser.json[parser.position];
+
+        if ch == ',' {
+            parser.position += 1;
+            continue;
+        }
+
+        if ch == ']' {
+            parser.position += 1;
+            return Ok(array);
+        }
+
+        array.push(parse_value(parser)?);
+    }
 }
 
 fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
@@ -181,7 +211,7 @@ fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::json::{self, Number};
+    use crate::json::{self, Data, Number};
 
     fn get_parser(json_string: &str) -> json::Parser {
         json::Parser {
@@ -272,5 +302,25 @@ mod tests {
     fn parse_string_no_trailing_quote() {
         let value = json::parse_string(&mut get_parser("\"Hello, world!"));
         assert!(value.is_err());
+    }
+
+    #[test]
+    fn parse_array_empty() {
+        let value = json::parse_array(&mut get_parser("[]"));
+        assert_eq!(value, Ok(vec![]));
+    }
+
+    #[test]
+    fn parse_array() {
+        let value = json::parse_array(&mut get_parser("[1, null, true, [1.2, \"hi\"]]"));
+        assert_eq!(
+            value,
+            Ok(vec![
+                Data::Int(1),
+                Data::Null,
+                Data::Bool(true),
+                Data::Array(vec![Data::Float(1.2), Data::String("hi".to_string())]),
+            ])
+        );
     }
 }
