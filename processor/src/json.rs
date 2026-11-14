@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::slice::Iter;
 
 #[derive(Debug, PartialEq)]
 pub enum Data {
@@ -7,8 +7,44 @@ pub enum Data {
     Int(i64),
     Float(f64),
     String(String),
-    Array(Box<[Data]>),
-    Object(HashMap<String, Data>),
+    Array(Array),
+    Object(Object),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Object(Box<[(String, Data)]>);
+
+impl Object {
+    pub fn get(&self, key: &str) -> Option<&Data> {
+        for (k, v) in &self.0 {
+            if key == k {
+                return Some(v);
+            }
+        }
+
+        None
+    }
+}
+
+impl From<Vec<(String, Data)>> for Object {
+    fn from(value: Vec<(String, Data)>) -> Self {
+        Self(value.into_boxed_slice())
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Array(Box<[Data]>);
+
+impl Array {
+    pub fn iter(&self) -> Iter<'_, Data> {
+        self.0.iter()
+    }
+}
+
+impl From<Vec<Data>> for Array {
+    fn from(value: Vec<Data>) -> Self {
+        Self(value.into_boxed_slice())
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -130,15 +166,15 @@ fn parse_number(parser: &mut Parser) -> Result<Number, String> {
             });
         }
 
-        let ch = parser.json[parser.position];
+        let ch = parser.json[parser.position] as char;
 
         match ch {
-            ch @ b'0'..=b'9' => {
-                number.push(ch as char);
+            ch @ ('-' | '0'..='9') => {
+                number.push(ch);
                 parser.position += 1;
             }
-            b'.' => {
-                number.push('.');
+            ch @ ('.' | 'e' | 'E') => {
+                number.push(ch);
                 is_float = true;
                 parser.position += 1;
             }
@@ -167,18 +203,18 @@ fn parse_string(parser: &mut Parser) -> Result<String, String> {
             return Err("Invalid string".to_string());
         }
 
-        let ch = parser.json[parser.position];
+        let ch = parser.json[parser.position] as char;
         parser.position += 1;
 
-        if ch == b'"' {
+        if ch == '"' {
             return Ok(string);
         }
 
-        string.push(ch as char);
+        string.push(ch);
     }
 }
 
-fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
+fn parse_array(parser: &mut Parser) -> Result<Array, String> {
     if parser.position >= parser.json.len() || parser.json[parser.position] != b'[' {
         return Err("Invalid array".to_string());
     }
@@ -201,21 +237,21 @@ fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
 
         if ch == b']' {
             parser.position += 1;
-            return Ok(array.into_boxed_slice());
+            return Ok(Array::from(array));
         }
 
         array.push(parse_value(parser)?);
     }
 }
 
-fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
+fn parse_object(parser: &mut Parser) -> Result<Object, String> {
     if parser.position >= parser.json.len() || parser.json[parser.position] != b'{' {
         return Err("Invalid object".to_string());
     }
 
     parser.position += 1;
 
-    let mut object: HashMap<String, Data> = HashMap::new();
+    let mut object: Vec<(String, Data)> = vec![];
 
     loop {
         if parser.position >= parser.json.len() {
@@ -231,7 +267,7 @@ fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
 
         if ch == b'}' {
             parser.position += 1;
-            return Ok(object);
+            return Ok(Object::from(object));
         }
 
         let key = parse_string(parser).map_err(|_| "Invalid object".to_string())?;
@@ -244,15 +280,13 @@ fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
 
         let value = parse_value(parser)?;
 
-        object.insert(key, value);
+        object.push((key, value));
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use crate::json::{self, Data, Number};
+    use crate::json::{self, Array, Data, Number, Object};
 
     fn get_parser(json_string: &str) -> json::Parser<'_> {
         json::Parser {
@@ -316,9 +350,21 @@ mod tests {
     }
 
     #[test]
+    fn parse_number_negative_int() {
+        let value = json::parse_number(&mut get_parser("-1234"));
+        assert_eq!(value, Ok(Number::Int(-1234)));
+    }
+
+    #[test]
     fn parse_number_float() {
         let value = json::parse_number(&mut get_parser("2.72"));
         assert_eq!(value, Ok(Number::Float(2.72)));
+    }
+
+    #[test]
+    fn parse_number_scientific_notation() {
+        let value = json::parse_number(&mut get_parser("1e-9"));
+        assert_eq!(value, Ok(Number::Float(1e-9)));
     }
 
     #[test]
@@ -348,7 +394,7 @@ mod tests {
     #[test]
     fn parse_array_empty() {
         let value = json::parse_array(&mut get_parser("[]"));
-        assert_eq!(value, Ok(vec![].into_boxed_slice()));
+        assert_eq!(value, Ok(Array::from(vec![])));
     }
 
     #[test]
@@ -356,22 +402,22 @@ mod tests {
         let value = json::parse_array(&mut get_parser("[1, null, true, [1.2, \"hi\"]]"));
         assert_eq!(
             value,
-            Ok(vec![
+            Ok(Array::from(vec![
                 Data::Int(1),
                 Data::Null,
                 Data::Bool(true),
-                Data::Array(
-                    vec![Data::Float(1.2), Data::String("hi".to_string())].into_boxed_slice()
-                ),
-            ]
-            .into_boxed_slice())
+                Data::Array(Array::from(vec![
+                    Data::Float(1.2),
+                    Data::String("hi".to_string())
+                ])),
+            ]))
         );
     }
 
     #[test]
     fn parse_object_empty() {
         let value = json::parse_object(&mut get_parser("{}"));
-        assert_eq!(value, Ok(HashMap::new()));
+        assert_eq!(value, Ok(Object::from(vec![])));
     }
 
     #[test]
@@ -381,19 +427,16 @@ mod tests {
         ));
         assert_eq!(
             value,
-            Ok(HashMap::from([
+            Ok(Object::from(vec![
                 ("Int".to_string(), Data::Int(1)),
                 ("Null".to_string(), Data::Null),
                 ("Bool".to_string(), Data::Bool(true)),
                 (
                     "Array".to_string(),
-                    Data::Array(
-                        vec![
-                            Data::Object(HashMap::from([("Float".to_string(), Data::Float(1.2)),])),
-                            Data::String("hi".to_string()),
-                        ]
-                        .into_boxed_slice()
-                    ),
+                    Data::Array(Array::from(vec![
+                        Data::Object(Object::from(vec![("Float".to_string(), Data::Float(1.2)),])),
+                        Data::String("hi".to_string()),
+                    ])),
                 ),
             ]))
         );
