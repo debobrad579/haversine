@@ -21,7 +21,7 @@ fn main() -> Result<(), String> {
 
     let mut haversines: Vec<f64> = vec![];
 
-    let pairs: Vec<(f64, f64, f64, f64)> = if let Data::Object(ref hash_map) = data
+    let pairs: Box<[(f64, f64, f64, f64)]> = if let Data::Object(ref hash_map) = data
         && let Some(Data::Array(pairs)) = hash_map.get("pairs")
     {
         pairs
@@ -45,7 +45,7 @@ fn main() -> Result<(), String> {
                     get_float("y1")?,
                 ))
             })
-            .collect::<Result<Vec<_>, String>>()?
+            .collect::<Result<Box<_>, String>>()?
     } else {
         return Err("Invalid data".to_string());
     };
@@ -65,8 +65,6 @@ fn main() -> Result<(), String> {
 
     let average = sum / count as f64;
 
-    println!("Average: {}", average);
-
     if let Some(answers_path) = args.answers_path
         && let Ok(answers) = fs::read(answers_path)
     {
@@ -74,11 +72,15 @@ fn main() -> Result<(), String> {
             let offset = i * 8;
 
             let answer = f64::from_le_bytes(answers[offset..offset + 8].try_into().unwrap());
+            let difference = (answer - haversine).abs();
 
-            if (answer - haversine).abs() > args.tolerance {
+            if difference > args.tolerance {
                 println!(
-                    "Difference > {:.1e}:\n    Precomputed Haversine: {}\n    Haversine: {}",
-                    args.tolerance, answer, haversine
+                    "Difference ({}): {:.16}\n    Haversine: {:.16}\n    Reference: {:.16}",
+                    i + 1,
+                    difference,
+                    answer,
+                    haversine
                 );
             }
         }
@@ -86,10 +88,13 @@ fn main() -> Result<(), String> {
         let answer_average = f64::from_le_bytes(*answers.last_chunk::<8>().unwrap());
 
         println!(
-            "Precomputed Average: {}\nDifference: {}",
+            "Difference: {:.16}\nAverage:    {:.16}\nReference:  {:.16}",
+            (answer_average - average).abs(),
+            average,
             answer_average,
-            answer_average - average
         );
+    } else {
+        println!("Average: {}", average);
     }
 
     Ok(())

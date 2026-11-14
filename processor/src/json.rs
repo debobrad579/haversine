@@ -7,7 +7,7 @@ pub enum Data {
     Int(i64),
     Float(f64),
     String(String),
-    Array(Vec<Data>),
+    Array(Box<[Data]>),
     Object(HashMap<String, Data>),
 }
 
@@ -175,7 +175,7 @@ fn parse_string(parser: &mut Parser) -> Result<String, String> {
     }
 }
 
-fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
+fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
     if parser.position >= parser.json.len() || parser.json[parser.position] != '[' {
         return Err("Invalid array".to_string());
     }
@@ -198,7 +198,7 @@ fn parse_array(parser: &mut Parser) -> Result<Vec<Data>, String> {
 
         if ch == ']' {
             parser.position += 1;
-            return Ok(array);
+            return Ok(array.into_boxed_slice());
         }
 
         array.push(parse_value(parser)?);
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn parse_array_empty() {
         let value = json::parse_array(&mut get_parser("[]"));
-        assert_eq!(value, Ok(vec![]));
+        assert_eq!(value, Ok(vec![].into_boxed_slice()));
     }
 
     #[test]
@@ -357,8 +357,11 @@ mod tests {
                 Data::Int(1),
                 Data::Null,
                 Data::Bool(true),
-                Data::Array(vec![Data::Float(1.2), Data::String("hi".to_string())]),
-            ])
+                Data::Array(
+                    vec![Data::Float(1.2), Data::String("hi".to_string())].into_boxed_slice()
+                ),
+            ]
+            .into_boxed_slice())
         );
     }
 
@@ -381,10 +384,13 @@ mod tests {
                 ("Bool".to_string(), Data::Bool(true)),
                 (
                     "Array".to_string(),
-                    Data::Array(vec![
-                        Data::Object(HashMap::from([("Float".to_string(), Data::Float(1.2)),])),
-                        Data::String("hi".to_string()),
-                    ]),
+                    Data::Array(
+                        vec![
+                            Data::Object(HashMap::from([("Float".to_string(), Data::Float(1.2)),])),
+                            Data::String("hi".to_string()),
+                        ]
+                        .into_boxed_slice()
+                    ),
                 ),
             ]))
         );
