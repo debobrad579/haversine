@@ -3,8 +3,10 @@ const std = @import("std");
 pub const JSONParseError = error{
     Value,
     Null,
-    Bool,
+    True,
+    False,
     Number,
+    String,
 };
 
 pub const Data = union(enum) {
@@ -44,18 +46,20 @@ pub const Object = struct {
 pub const Parser = struct {
     json: []const u8,
     position: usize,
+    allocator: std.mem.Allocator,
 };
 
-pub fn parse_json(json: []const u8) !Data {
+pub fn parse_json(json: []const u8, allocator: std.mem.Allocator) JSONParseError!Data {
     var parser = Parser{
         .json = json,
         .position = 0,
+        .allocator = allocator,
     };
 
     return parse_value(&parser);
 }
 
-fn parse_value(parser: *Parser) !Data {
+fn parse_value(parser: *Parser) JSONParseError!Data {
     if (parser.position >= parser.json.len) {
         return JSONParseError.Value;
     }
@@ -64,12 +68,13 @@ fn parse_value(parser: *Parser) !Data {
 
     return switch (char) {
         'n', 'N' => Data{ .Null = try parse_null(parser) },
-        't', 'T', 'f', 'F' => Data{ .Bool = try parse_bool(parser) },
+        't', 'T' => Data{ .Bool = try parse_true(parser) },
+        'f', 'F' => Data{ .Bool = try parse_false(parser) },
         '-', '0'...'9' => switch (try parse_number(parser)) {
             .Int => |number| Data{ .Int = number },
             .Float => |number| Data{ .Float = number },
         },
-        // '"' => Data{ .String = try parse_string(parser) },
+        '"' => Data{ .String = try parse_string(parser) },
         // '[' => Data{ .Array = try parse_array(parser) },
         // '{' => Data{ .Object = try parse_object(parser) },
         ' ' | '\n' => {
@@ -80,7 +85,7 @@ fn parse_value(parser: *Parser) !Data {
     };
 }
 
-fn parse_null(parser: *Parser) !void {
+fn parse_null(parser: *Parser) JSONParseError!void {
     if (parser.position + 4 > parser.json.len) {
         return JSONParseError.Null;
     }
@@ -94,47 +99,37 @@ fn parse_null(parser: *Parser) !void {
     parser.position += 4;
 }
 
-fn parse_bool(parser: *Parser) !bool {
-    if (parser.position >= parser.json.len) {
-        return JSONParseError.Bool;
+fn parse_true(parser: *Parser) JSONParseError!bool {
+    if (parser.position + 4 > parser.json.len) {
+        return JSONParseError.True;
     }
 
-    const char = parser.json[parser.position];
+    const value = parser.json[parser.position .. parser.position + 4];
 
-    if (char == 't' or char == 'T') {
-        if (parser.position + 4 > parser.json.len) {
-            return JSONParseError.Bool;
-        }
-
-        const value = parser.json[parser.position .. parser.position + 4];
-
-        if (!std.ascii.eqlIgnoreCase(value, "true")) {
-            return JSONParseError.Bool;
-        }
-
-        parser.position += 4;
-        return true;
+    if (!std.ascii.eqlIgnoreCase(value, "true")) {
+        return JSONParseError.True;
     }
 
-    if (char == 'f' or char == 'F') {
-        if (parser.position + 5 > parser.json.len) {
-            return JSONParseError.Bool;
-        }
-
-        const value = parser.json[parser.position .. parser.position + 5];
-
-        if (!std.ascii.eqlIgnoreCase(value, "false")) {
-            return JSONParseError.Bool;
-        }
-
-        parser.position += 5;
-        return false;
-    }
-
-    return JSONParseError.Bool;
+    parser.position += 4;
+    return true;
 }
 
-fn parse_number(parser: *Parser) !Number {
+fn parse_false(parser: *Parser) JSONParseError!bool {
+    if (parser.position + 5 > parser.json.len) {
+        return JSONParseError.False;
+    }
+
+    const value = parser.json[parser.position .. parser.position + 5];
+
+    if (!std.ascii.eqlIgnoreCase(value, "false")) {
+        return JSONParseError.False;
+    }
+
+    parser.position += 5;
+    return false;
+}
+
+fn parse_number(parser: *Parser) JSONParseError!Number {
     if (parser.position >= parser.json.len) {
         return JSONParseError.Number;
     }
@@ -224,8 +219,31 @@ fn parse_number(parser: *Parser) !Number {
     return Number{ .Int = sign * integer_part };
 }
 
-fn parse_string(_: *Parser) ![]const u8 {}
+fn parse_string(parser: *Parser) JSONParseError![]const u8 {
+    if (parser.position >= parser.json.len or parser.json[parser.position] != '"') {
+        return JSONParseError.String;
+    }
 
-fn parse_array(_: *Parser) ![]const Data {}
+    parser.position += 1;
 
-fn parse_object(_: *Parser) !Object {}
+    var string: std.ArrayList(u8) = .empty;
+
+    while (parser.position < parser.json.len) {
+        const char = parser.json[parser.position];
+        parser.position += 1;
+
+        if (char == '"') {
+            return string.toOwnedSlice(parser.allocator) catch JSONParseError.String;
+        }
+
+        string.append(parser.allocator, char) catch {
+            return JSONParseError.String;
+        };
+    }
+
+    return JSONParseError.String;
+}
+
+fn parse_array(_: *Parser) JSONParseError![]const Data {}
+
+fn parse_object(_: *Parser) JSONParseError!Object {}
