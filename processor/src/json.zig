@@ -79,7 +79,7 @@ fn parse_value(parser: *Parser) JSONParseError!Data {
         '"' => Data{ .String = try parse_string(parser) },
         '[' => Data{ .Array = try parse_array(parser) },
         '{' => Data{ .Object = try parse_object(parser) },
-        ' ', '\n' => {
+        ' ', '\n', '\t', '\r' => {
             parser.position += 1;
             return parse_value(parser);
         },
@@ -258,7 +258,7 @@ fn parse_array(parser: *Parser) JSONParseError![]const Data {
     while (parser.position < parser.json.len) {
         const char = parser.json[parser.position];
 
-        if (char == ',' or char == ' ' or char == '\n') {
+        if (char == ',' or char == ' ' or char == '\n' or char == '\t' or char == '\r') {
             parser.position += 1;
             continue;
         }
@@ -288,7 +288,7 @@ fn parse_object(parser: *Parser) JSONParseError!Object {
     while (parser.position < parser.json.len) {
         const char = parser.json[parser.position];
 
-        if (char == ',' or char == ' ' or char == '\n') {
+        if (char == ',' or char == ' ' or char == '\n' or char == '\t' or char == '\r') {
             parser.position += 1;
             continue;
         }
