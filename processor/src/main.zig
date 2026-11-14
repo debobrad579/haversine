@@ -26,21 +26,33 @@ pub fn main(init: std.process.Init) !void {
     }
 
     const path = args[1];
+    const answers_path = if (args.len == 3) args[2] else null;
 
     const json_data = try std.Io.Dir.cwd().readFileAlloc(
         io,
         path,
         gpa,
-        .limited(1024 * 1024),
+        .limited(1024 * 1024 * 1024),
     );
-    defer gpa.free(json_data);
 
     const data = try json.parse_json(json_data, arena);
+
+    gpa.free(json_data);
+
+    const answers_data = if (answers_path) |answers|
+        try std.Io.Dir.cwd().readFileAlloc(
+            io,
+            answers,
+            gpa,
+            .limited(1024 * 1024 * 1024),
+        )
+    else
+        null;
 
     var sum: f64 = 0.0;
     var count: f64 = 0.0;
 
-    for (data.Object.get("pairs").?.Array) |pair| {
+    for (data.Object.get("pairs").?.Array, 0..) |pair, i| {
         const x0 = pair.Object.get("x0").?.Float;
         const y0 = pair.Object.get("y0").?.Float;
         const x1 = pair.Object.get("x1").?.Float;
@@ -48,15 +60,46 @@ pub fn main(init: std.process.Init) !void {
 
         const haversine: f64 = c.ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
 
+        if (answers_data) |answers| {
+            const offset = i * 8;
+
+            const answer = @as(f64, @bitCast(std.mem.readInt(u64, answers[offset..][0..8], .little)));
+            const difference = @abs(answer - haversine);
+
+            if (difference > 1e-6) {
+                try stdout_writer.print(
+                    "Difference ({d}): {d:.16}\n    Haversine: {:.16}\n    Reference: {:.16}\n",
+                    .{
+                        i,
+                        difference,
+                        haversine,
+                        answer,
+                    },
+                );
+            }
+        }
+
         sum += haversine;
         count += 1;
     }
 
     const average = sum / count;
 
-    try stdout_writer.print("Average: {d:.16}\n", .{average});
-
-    // const answers_path = if (args.len == 3) args[2] else null;
+    if (answers_data) |answers| {
+        const reference_average = @as(f64, @bitCast(std.mem.readInt(u64, answers[answers.len - 8 ..][0..8], .little)));
+        const difference = @abs(reference_average - average);
+        try stdout_writer.print(
+            "Difference: {d:.16}\nAverage:    {:.16}\nReference:  {:.16}\n",
+            .{
+                difference,
+                average,
+                reference_average,
+            },
+        );
+        gpa.free(answers);
+    } else {
+        try stdout_writer.print("Average: {d:.16}\n", .{average});
+    }
 
     try stdout_writer.flush();
 }
