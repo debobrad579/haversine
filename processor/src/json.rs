@@ -17,13 +17,16 @@ enum Number {
     Float(f64),
 }
 
-struct Parser {
-    json: Vec<char>,
+struct Parser<'a> {
+    json: &'a [u8],
     position: usize,
 }
 
-pub fn parse_json(json: Vec<char>) -> Result<Data, String> {
-    parse_value(&mut Parser { json, position: 0 })
+pub fn parse_json(json: &str) -> Result<Data, String> {
+    parse_value(&mut Parser {
+        json: json.as_bytes(),
+        position: 0,
+    })
 }
 
 fn parse_value(parser: &mut Parser) -> Result<Data, String> {
@@ -32,16 +35,16 @@ fn parse_value(parser: &mut Parser) -> Result<Data, String> {
     }
 
     match parser.json[parser.position] {
-        'n' | 'N' => parse_null(parser).map(|_| Data::Null),
-        't' | 'T' | 'f' | 'F' => parse_bool(parser).map(Data::Bool),
-        '0'..='9' => parse_number(parser).map(|number| match number {
+        b'n' | b'N' => parse_null(parser).map(|_| Data::Null),
+        b't' | b'T' | b'f' | b'F' => parse_bool(parser).map(Data::Bool),
+        b'0'..=b'9' => parse_number(parser).map(|number| match number {
             Number::Int(number) => Data::Int(number),
             Number::Float(number) => Data::Float(number),
         }),
-        '"' => parse_string(parser).map(Data::String),
-        '[' => parse_array(parser).map(Data::Array),
-        '{' => parse_object(parser).map(Data::Object),
-        ' ' | '\n' => {
+        b'"' => parse_string(parser).map(Data::String),
+        b'[' => parse_array(parser).map(Data::Array),
+        b'{' => parse_object(parser).map(Data::Object),
+        b' ' | b'\n' => {
             parser.position += 1;
             parse_value(parser)
         }
@@ -51,10 +54,10 @@ fn parse_value(parser: &mut Parser) -> Result<Data, String> {
 
 fn parse_null(parser: &mut Parser) -> Result<(), String> {
     if parser.position + 3 >= parser.json.len()
-        || (parser.json[parser.position] != 'n' && parser.json[parser.position] != 'N')
-        || (parser.json[parser.position + 1] != 'u' && parser.json[parser.position + 1] != 'U')
-        || (parser.json[parser.position + 2] != 'l' && parser.json[parser.position + 2] != 'L')
-        || (parser.json[parser.position + 3] != 'l' && parser.json[parser.position + 3] != 'L')
+        || (parser.json[parser.position] != b'n' && parser.json[parser.position] != b'N')
+        || (parser.json[parser.position + 1] != b'u' && parser.json[parser.position + 1] != b'U')
+        || (parser.json[parser.position + 2] != b'l' && parser.json[parser.position + 2] != b'L')
+        || (parser.json[parser.position + 3] != b'l' && parser.json[parser.position + 3] != b'L')
     {
         return Err("Invalid null".to_string());
     }
@@ -70,8 +73,8 @@ fn parse_bool(parser: &mut Parser) -> Result<bool, String> {
     }
 
     let boolean = match parser.json[parser.position] {
-        't' | 'T' => true,
-        'f' | 'F' => false,
+        b't' | b'T' => true,
+        b'f' | b'F' => false,
         _ => return Err("Invalid boolean".to_string()),
     };
 
@@ -80,11 +83,11 @@ fn parse_bool(parser: &mut Parser) -> Result<bool, String> {
     Ok(match boolean {
         true => {
             if parser.position + 2 >= parser.json.len()
-                || (parser.json[parser.position] != 'r' && parser.json[parser.position] != 'R')
-                || (parser.json[parser.position + 1] != 'u'
-                    && parser.json[parser.position + 1] != 'U')
-                || (parser.json[parser.position + 2] != 'e'
-                    && parser.json[parser.position + 2] != 'E')
+                || (parser.json[parser.position] != b'r' && parser.json[parser.position] != b'R')
+                || (parser.json[parser.position + 1] != b'u'
+                    && parser.json[parser.position + 1] != b'U')
+                || (parser.json[parser.position + 2] != b'e'
+                    && parser.json[parser.position + 2] != b'E')
             {
                 return Err("Invalid boolean".to_string());
             }
@@ -95,13 +98,13 @@ fn parse_bool(parser: &mut Parser) -> Result<bool, String> {
         }
         false => {
             if parser.position + 3 >= parser.json.len()
-                || (parser.json[parser.position] != 'a' && parser.json[parser.position] != 'A')
-                || (parser.json[parser.position + 1] != 'l'
-                    && parser.json[parser.position + 1] != 'L')
-                || (parser.json[parser.position + 2] != 's'
-                    && parser.json[parser.position + 2] != 'S')
-                || (parser.json[parser.position + 3] != 'e'
-                    && parser.json[parser.position + 3] != 'E')
+                || (parser.json[parser.position] != b'a' && parser.json[parser.position] != b'A')
+                || (parser.json[parser.position + 1] != b'l'
+                    && parser.json[parser.position + 1] != b'L')
+                || (parser.json[parser.position + 2] != b's'
+                    && parser.json[parser.position + 2] != b'S')
+                || (parser.json[parser.position + 3] != b'e'
+                    && parser.json[parser.position + 3] != b'E')
             {
                 return Err("Invalid boolean".to_string());
             }
@@ -130,11 +133,11 @@ fn parse_number(parser: &mut Parser) -> Result<Number, String> {
         let ch = parser.json[parser.position];
 
         match ch {
-            ch @ '0'..='9' => {
-                number.push(ch);
+            ch @ b'0'..=b'9' => {
+                number.push(ch as char);
                 parser.position += 1;
             }
-            '.' => {
+            b'.' => {
                 number.push('.');
                 is_float = true;
                 parser.position += 1;
@@ -151,7 +154,7 @@ fn parse_number(parser: &mut Parser) -> Result<Number, String> {
 }
 
 fn parse_string(parser: &mut Parser) -> Result<String, String> {
-    if parser.position >= parser.json.len() || parser.json[parser.position] != '"' {
+    if parser.position >= parser.json.len() || parser.json[parser.position] != b'"' {
         return Err("Invalid string".to_string());
     }
 
@@ -167,16 +170,16 @@ fn parse_string(parser: &mut Parser) -> Result<String, String> {
         let ch = parser.json[parser.position];
         parser.position += 1;
 
-        if ch == '"' {
+        if ch == b'"' {
             return Ok(string);
         }
 
-        string.push(ch);
+        string.push(ch as char);
     }
 }
 
 fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
-    if parser.position >= parser.json.len() || parser.json[parser.position] != '[' {
+    if parser.position >= parser.json.len() || parser.json[parser.position] != b'[' {
         return Err("Invalid array".to_string());
     }
 
@@ -191,12 +194,12 @@ fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
 
         let ch = parser.json[parser.position];
 
-        if ch == ',' || ch == ' ' || ch == '\n' {
+        if ch == b',' || ch == b' ' || ch == b'\n' {
             parser.position += 1;
             continue;
         }
 
-        if ch == ']' {
+        if ch == b']' {
             parser.position += 1;
             return Ok(array.into_boxed_slice());
         }
@@ -206,7 +209,7 @@ fn parse_array(parser: &mut Parser) -> Result<Box<[Data]>, String> {
 }
 
 fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
-    if parser.position >= parser.json.len() || parser.json[parser.position] != '{' {
+    if parser.position >= parser.json.len() || parser.json[parser.position] != b'{' {
         return Err("Invalid object".to_string());
     }
 
@@ -221,19 +224,19 @@ fn parse_object(parser: &mut Parser) -> Result<HashMap<String, Data>, String> {
 
         let ch = parser.json[parser.position];
 
-        if ch == ',' || ch == ' ' || ch == '\n' {
+        if ch == b',' || ch == b' ' || ch == b'\n' {
             parser.position += 1;
             continue;
         }
 
-        if ch == '}' {
+        if ch == b'}' {
             parser.position += 1;
             return Ok(object);
         }
 
         let key = parse_string(parser).map_err(|_| "Invalid object".to_string())?;
 
-        if parser.position >= parser.json.len() || parser.json[parser.position] != ':' {
+        if parser.position >= parser.json.len() || parser.json[parser.position] != b':' {
             return Err("Invalid object".to_string());
         }
 
@@ -251,9 +254,9 @@ mod tests {
 
     use crate::json::{self, Data, Number};
 
-    fn get_parser(json_string: &str) -> json::Parser {
+    fn get_parser(json_string: &str) -> json::Parser<'_> {
         json::Parser {
-            json: json_string.chars().collect(),
+            json: json_string.as_bytes(),
             position: 0,
         }
     }
