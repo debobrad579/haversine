@@ -135,7 +135,10 @@ test "parse array" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parse_json("[1, null, true, [1.2, \"hi\"]]", arena.allocator());
+    const value = try json.parse_json(
+        "[1, null, true, [1.2, \"hi\"]]",
+        arena.allocator(),
+    );
 
     try std.testing.expectEqualDeep(
         &[_]json.Data{
@@ -148,5 +151,49 @@ test "parse array" {
             } },
         },
         value.Array,
+    );
+}
+
+test "parse object empty" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const value = try json.parse_json("{}", arena.allocator());
+
+    try std.testing.expectEqualDeep(
+        json.Object{ .entries = &[_]json.Object.Entry{} },
+        value.Object,
+    );
+}
+
+test "parse object" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const value = try json.parse_json(
+        "{\"Int\": 1, \"Null\": null, \"Bool\": true, \"Array\": [{\"Float\": 1.2}, \"hi\"]}",
+        arena.allocator(),
+    );
+
+    try std.testing.expectEqualDeep(
+        json.Object{ .entries = &[_]json.Object.Entry{
+            json.Object.Entry{ .key = "Int", .value = json.Data{ .Int = 1 } },
+            json.Object.Entry{ .key = "Null", .value = json.Data{ .Null = {} } },
+            json.Object.Entry{ .key = "Bool", .value = json.Data{ .Bool = true } },
+            json.Object.Entry{ .key = "Array", .value = json.Data{ .Array = &[_]json.Data{
+                json.Data{
+                    .Object = json.Object{
+                        .entries = &[_]json.Object.Entry{
+                            json.Object.Entry{
+                                .key = "Float",
+                                .value = json.Data{ .Float = 1.2 },
+                            },
+                        },
+                    },
+                },
+                json.Data{ .String = "hi" },
+            } } },
+        } },
+        value.Object,
     );
 }

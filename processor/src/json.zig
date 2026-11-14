@@ -36,7 +36,7 @@ pub const Object = struct {
 
     pub fn get(self: *const Object, key: []const u8) ?Data {
         for (self.entries) |entry| {
-            if (entry.key == key) {
+            if (std.mem.eql(u8, entry.key, key)) {
                 return entry.value;
             }
         }
@@ -78,8 +78,8 @@ fn parse_value(parser: *Parser) JSONParseError!Data {
         },
         '"' => Data{ .String = try parse_string(parser) },
         '[' => Data{ .Array = try parse_array(parser) },
-        // '{' => Data{ .Object = try parse_object(parser) },
-        ' ' | '\n' => {
+        '{' => Data{ .Object = try parse_object(parser) },
+        ' ', '\n' => {
             parser.position += 1;
             return parse_value(parser);
         },
@@ -276,4 +276,48 @@ fn parse_array(parser: *Parser) JSONParseError![]const Data {
     return JSONParseError.Array;
 }
 
-fn parse_object(_: *Parser) JSONParseError!Object {}
+fn parse_object(parser: *Parser) JSONParseError!Object {
+    if (parser.position >= parser.json.len or parser.json[parser.position] != '{') {
+        return JSONParseError.Object;
+    }
+
+    parser.position += 1;
+
+    var entries: std.ArrayList(Object.Entry) = .empty;
+
+    while (parser.position < parser.json.len) {
+        const char = parser.json[parser.position];
+
+        if (char == ',' or char == ' ' or char == '\n') {
+            parser.position += 1;
+            continue;
+        }
+
+        if (char == '}') {
+            parser.position += 1;
+            return Object{ .entries = entries.toOwnedSlice(parser.allocator) catch {
+                return JSONParseError.Object;
+            } };
+        }
+
+        const key = parse_string(parser) catch {
+            return JSONParseError.Object;
+        };
+
+        if (parser.position >= parser.json.len or parser.json[parser.position] != ':') {
+            return JSONParseError.Object;
+        }
+
+        parser.position += 1;
+
+        const value = parse_value(parser) catch {
+            return JSONParseError.Object;
+        };
+
+        entries.append(parser.allocator, Object.Entry{ .key = key, .value = value }) catch {
+            return JSONParseError.Object;
+        };
+    }
+
+    return JSONParseError.Object;
+}
