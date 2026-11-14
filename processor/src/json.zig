@@ -7,6 +7,8 @@ pub const JSONParseError = error{
     False,
     Number,
     String,
+    Array,
+    Object,
 };
 
 pub const Data = union(enum) {
@@ -75,7 +77,7 @@ fn parse_value(parser: *Parser) JSONParseError!Data {
             .Float => |number| Data{ .Float = number },
         },
         '"' => Data{ .String = try parse_string(parser) },
-        // '[' => Data{ .Array = try parse_array(parser) },
+        '[' => Data{ .Array = try parse_array(parser) },
         // '{' => Data{ .Object = try parse_object(parser) },
         ' ' | '\n' => {
             parser.position += 1;
@@ -244,6 +246,34 @@ fn parse_string(parser: *Parser) JSONParseError![]const u8 {
     return JSONParseError.String;
 }
 
-fn parse_array(_: *Parser) JSONParseError![]const Data {}
+fn parse_array(parser: *Parser) JSONParseError![]const Data {
+    if (parser.position >= parser.json.len or parser.json[parser.position] != '[') {
+        return JSONParseError.Array;
+    }
+
+    parser.position += 1;
+
+    var array: std.ArrayList(Data) = .empty;
+
+    while (parser.position < parser.json.len) {
+        const char = parser.json[parser.position];
+
+        if (char == ',' or char == ' ' or char == '\n') {
+            parser.position += 1;
+            continue;
+        }
+
+        if (char == ']') {
+            parser.position += 1;
+            return array.toOwnedSlice(parser.allocator) catch JSONParseError.Array;
+        }
+
+        array.append(parser.allocator, try parse_value(parser)) catch {
+            return JSONParseError.Array;
+        };
+    }
+
+    return JSONParseError.Array;
+}
 
 fn parse_object(_: *Parser) JSONParseError!Object {}

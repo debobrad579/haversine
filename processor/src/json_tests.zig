@@ -117,3 +117,36 @@ test "parse string" {
 
     try std.testing.expectEqualStrings("Hello, World!", value.String);
 }
+
+test "parse array empty" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const value = try json.parse_json("[]", arena.allocator());
+
+    try std.testing.expectEqualSlices(
+        json.Data,
+        &[_]json.Data{},
+        value.Array,
+    );
+}
+
+test "parse array" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const value = try json.parse_json("[1, null, true, [1.2, \"hi\"]]", arena.allocator());
+
+    try std.testing.expectEqualDeep(
+        &[_]json.Data{
+            json.Data{ .Int = 1 },
+            json.Data{ .Null = {} },
+            json.Data{ .Bool = true },
+            json.Data{ .Array = &[_]json.Data{
+                json.Data{ .Float = 1.2 },
+                json.Data{ .String = "hi" },
+            } },
+        },
+        value.Array,
+    );
+}
