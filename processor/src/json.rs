@@ -153,37 +153,114 @@ fn parse_bool(parser: &mut Parser) -> Result<bool, String> {
 }
 
 fn parse_number(parser: &mut Parser) -> Result<Number, String> {
-    let mut is_float = false;
+    if parser.position >= parser.json.len() {
+        return Err("Invalid number".to_string());
+    }
 
-    let mut number = String::new();
+    let sign = if parser.json[parser.position] == b'-' {
+        parser.position += 1;
+        -1
+    } else {
+        1
+    };
+
+    let mut integer_part = 0;
+    let mut float_part = 0.0;
+
+    let mut is_float = false;
+    let mut float_scale = 0.1;
+
+    let mut is_exponent = false;
+    let mut exponent_part = 0;
+    let mut exponent_negative = false;
+
+    let get_return_value = |is_float: bool,
+                            integer_part: i64,
+                            float_part: f64,
+                            exponent_part: i64,
+                            exponent_negative: bool|
+     -> Number {
+        if is_float {
+            let mut float = sign as f64 * (integer_part as f64 + float_part);
+
+            let mut multiplier = 1.0;
+            for _ in 0..exponent_part {
+                multiplier *= 10.0;
+            }
+
+            if exponent_negative {
+                float /= multiplier;
+            } else {
+                float *= multiplier;
+            }
+
+            Number::Float(float)
+        } else {
+            Number::Int(sign * integer_part)
+        }
+    };
 
     loop {
         if parser.position >= parser.json.len() {
-            return Ok(if is_float {
-                Number::Float(number.parse().map_err(|_| "Invalid number".to_string())?)
-            } else {
-                Number::Int(number.parse().map_err(|_| "Invalid number".to_string())?)
-            });
+            return Ok(get_return_value(
+                is_float,
+                integer_part,
+                float_part,
+                exponent_part,
+                exponent_negative,
+            ));
         }
 
-        let ch = parser.json[parser.position] as char;
+        let ch = parser.json[parser.position];
 
         match ch {
-            ch @ ('-' | '0'..='9') => {
-                number.push(ch);
+            ch @ b'0'..=b'9' => {
+                let digit = ch - b'0';
+
+                if is_exponent {
+                    exponent_part *= 10;
+                    exponent_part += digit as i64;
+                } else if is_float {
+                    float_part += digit as f64 * float_scale;
+                    float_scale /= 10.0;
+                } else {
+                    integer_part *= 10;
+                    integer_part += digit as i64;
+                }
                 parser.position += 1;
             }
-            ch @ ('.' | 'e' | 'E') => {
-                number.push(ch);
+            b'.' => {
                 is_float = true;
                 parser.position += 1;
             }
+            b'e' | b'E' => {
+                is_float = true;
+                is_exponent = true;
+                parser.position += 1;
+
+                if parser.position == parser.json.len() {
+                    return Err("Invalid number".to_string());
+                }
+
+                let ch = parser.json[parser.position];
+
+                match ch {
+                    b'+' => parser.position += 1,
+                    b'-' => {
+                        exponent_negative = true;
+                        parser.position += 1;
+                    }
+                    _ => {}
+                }
+            }
             _ => {
-                return Ok(if is_float {
-                    Number::Float(number.parse().map_err(|_| "Invalid number".to_string())?)
-                } else {
-                    Number::Int(number.parse().map_err(|_| "Invalid number".to_string())?)
-                });
+                return Ok(get_return_value(
+                    is_float,
+                    integer_part,
+                    float_part,
+                    exponent_part,
+                    exponent_negative,
+                ));
             }
         }
     }
@@ -362,7 +439,19 @@ mod tests {
     }
 
     #[test]
+    fn parse_number_negative_float() {
+        let value = json::parse_number(&mut get_parser("-2.72"));
+        assert_eq!(value, Ok(Number::Float(-2.72)));
+    }
+
+    #[test]
     fn parse_number_scientific_notation() {
+        let value = json::parse_number(&mut get_parser("1e9"));
+        assert_eq!(value, Ok(Number::Float(1e9)));
+    }
+
+    #[test]
+    fn parse_number_scientific_notation_negative_exponent() {
         let value = json::parse_number(&mut get_parser("1e-9"));
         assert_eq!(value, Ok(Number::Float(1e-9)));
     }
