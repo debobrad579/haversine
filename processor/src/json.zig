@@ -65,7 +65,7 @@ fn parse_value(parser: *Parser) !Data {
     return switch (char) {
         'n', 'N' => Data{ .Null = try parse_null(parser) },
         't', 'T', 'f', 'F' => Data{ .Bool = try parse_bool(parser) },
-        '0'...'9' => switch (try parse_number(parser)) {
+        '-', '0'...'9' => switch (try parse_number(parser)) {
             .Int => |number| Data{ .Int = number },
             .Float => |number| Data{ .Float = number },
         },
@@ -134,8 +134,94 @@ fn parse_bool(parser: *Parser) !bool {
     return JSONParseError.Bool;
 }
 
-fn parse_number(_: *Parser) !Number {
-    return Number{ .Int = 1 };
+fn parse_number(parser: *Parser) !Number {
+    if (parser.position >= parser.json.len) {
+        return JSONParseError.Number;
+    }
+
+    const sign: i64 = if (parser.json[parser.position] == '-')
+        -1
+    else
+        1;
+
+    if (sign == -1) {
+        parser.position += 1;
+    }
+
+    var integer_part: i64 = 0;
+    var float_part: f64 = 0.0;
+
+    var is_float = false;
+    var float_scale: f64 = 0.1;
+
+    var is_exponent = false;
+    var exponent_part: usize = 0;
+    var exponent_negative = false;
+
+    while (parser.position < parser.json.len) {
+        const char = parser.json[parser.position];
+
+        switch (char) {
+            '0'...'9' => {
+                const digit = char - '0';
+
+                if (is_exponent) {
+                    exponent_part *= 10;
+                    exponent_part += @as(usize, digit);
+                } else if (is_float) {
+                    float_part += @as(f64, @floatFromInt(digit)) * float_scale;
+                    float_scale /= 10.0;
+                } else {
+                    integer_part *= 10;
+                    integer_part += @as(i64, digit);
+                }
+
+                parser.position += 1;
+            },
+            '.' => {
+                is_float = true;
+                parser.position += 1;
+            },
+            'e', 'E' => {
+                is_float = true;
+                is_exponent = true;
+                parser.position += 1;
+
+                if (parser.position == parser.json.len) {
+                    return JSONParseError.Number;
+                }
+
+                switch (parser.json[parser.position]) {
+                    '+' => parser.position += 1,
+                    '-' => {
+                        exponent_negative = true;
+                        parser.position += 1;
+                    },
+                    else => {},
+                }
+            },
+            else => break,
+        }
+    }
+
+    if (is_float) {
+        var float = @as(f64, @floatFromInt(sign)) * (@as(f64, @floatFromInt(integer_part)) + float_part);
+
+        var multiplier: f64 = 1.0;
+        for (0..exponent_part) |_| {
+            multiplier *= 10.0;
+        }
+
+        if (exponent_negative) {
+            float /= multiplier;
+        } else {
+            float *= multiplier;
+        }
+
+        return Number{ .Float = float };
+    }
+
+    return Number{ .Int = sign * integer_part };
 }
 
 fn parse_string(_: *Parser) ![]const u8 {}
