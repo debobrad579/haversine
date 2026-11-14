@@ -2,7 +2,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, value_parser};
 use haversine_generator::generate_data::generate_data;
 
 fn main() -> io::Result<()> {
@@ -34,6 +34,7 @@ fn main() -> io::Result<()> {
 #[derive(Parser)]
 #[clap()]
 struct Args {
+    #[arg(value_parser = value_parser!(u32).range(1..=10_000_000))]
     count: u32,
 
     #[clap(short, long, default_value_t = false)]
