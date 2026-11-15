@@ -4,14 +4,15 @@ const Io = std.Io;
 const c = @import("c");
 
 const json = @import("json.zig");
+const profiler = @import("profiler.zig");
 
 const EARTH_RADIUS = 6372.8;
 
 pub fn main(init: std.process.Init) !void {
-    const rdtsc_start = c.GetRDTSC();
-
     const io = init.io;
     const gpa = init.gpa;
+
+    try profiler.init(gpa);
 
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
@@ -30,7 +31,7 @@ pub fn main(init: std.process.Init) !void {
     const path = args[1];
     const answers_path = if (args.len == 3) args[2] else null;
 
-    const rdtsc_read = c.GetRDTSC();
+    var read_timer = profiler.start("Read");
 
     const json_data = try std.Io.Dir.cwd().readFileAlloc(
         io,
@@ -39,11 +40,13 @@ pub fn main(init: std.process.Init) !void {
         .limited(1024 * 1024 * 1024),
     );
 
-    const rdtsc_parse = c.GetRDTSC();
+    read_timer.stop();
+
+    var parse_timer = profiler.start("Parse");
 
     const data = try json.parse_json(json_data, arena);
 
-    const rdtsc_misc_setup = c.GetRDTSC();
+    parse_timer.stop();
 
     gpa.free(json_data);
 
@@ -57,7 +60,7 @@ pub fn main(init: std.process.Init) !void {
     else
         null;
 
-    const rdtsc_sum = c.GetRDTSC();
+    var sum_timer = profiler.start("Sum");
 
     var sum: f64 = 0.0;
     var count: f64 = 0.0;
@@ -93,7 +96,7 @@ pub fn main(init: std.process.Init) !void {
         count += 1;
     }
 
-    const rdtsc_misc_output = c.GetRDTSC();
+    sum_timer.stop();
 
     const average = sum / count;
 
@@ -113,48 +116,8 @@ pub fn main(init: std.process.Init) !void {
         try stdout_writer.print("Average: {d:.16}\n", .{average});
     }
 
-    const rdtsc_end = c.GetRDTSC();
-
-    const cpu_freq = c.EstimateCPUFrequency(100);
-
-    const rdtsc_difference = rdtsc_end - rdtsc_start;
-    const startup_time = rdtsc_read - rdtsc_start;
-    const read_time = rdtsc_parse - rdtsc_read;
-    const parse_time = rdtsc_misc_setup - rdtsc_parse;
-    const misc_setup_time = rdtsc_sum - rdtsc_misc_setup;
-    const sum_time = rdtsc_misc_output - rdtsc_sum;
-    const misc_output_time = rdtsc_end - rdtsc_misc_output;
-
-    try stdout_writer.print(
-        \\
-        \\Total time: {d:.4}ms (CPU freq {d})
-        \\  Startup: {d} ({d:.2}%)
-        \\  Read: {d} ({d:.2}%)
-        \\  Parse: {d} ({d:.2}%)
-        \\  MiscSetup: {d} ({d:.2}%)
-        \\  Sum: {d} ({d:.2}%)
-        \\  MiscOutput: {d} ({d:.2}%)
-        \\
-    , .{
-        @as(f64, @floatFromInt(rdtsc_difference)) / (@as(f64, @floatFromInt(cpu_freq)) / 1000),
-        cpu_freq,
-        startup_time,
-        get_percentage(startup_time, rdtsc_difference),
-        read_time,
-        get_percentage(read_time, rdtsc_difference),
-        parse_time,
-        get_percentage(parse_time, rdtsc_difference),
-        misc_setup_time,
-        get_percentage(misc_setup_time, rdtsc_difference),
-        sum_time,
-        get_percentage(sum_time, rdtsc_difference),
-        misc_output_time,
-        get_percentage(misc_output_time, rdtsc_difference),
-    });
+    try profiler.print(stdout_writer);
+    profiler.deinit();
 
     try stdout_writer.flush();
-}
-
-fn get_percentage(part: u64, total: u64) f64 {
-    return @as(f64, @floatFromInt(part)) / @as(f64, @floatFromInt(total)) * 100;
 }
