@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const translate_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/haversine.h"),
+        .root_source_file = b.path("src/c.h"),
         .target = target,
         .optimize = optimize,
     });
@@ -26,6 +26,10 @@ pub fn build(b: *std.Build) void {
         .file = b.path("src/haversine.c"),
         .flags = &.{},
     });
+    exe.root_module.addCSourceFile(.{
+        .file = b.path("src/rdtsc.c"),
+        .flags = &.{},
+    });
     exe.root_module.link_libc = true;
 
     b.installArtifact(exe);
@@ -33,7 +37,6 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
-    run_cmd.step.dependOn(b.getInstallStep());
     run_cmd.addPassthruArgs();
 
     const exe_tests = b.addTest(.{
