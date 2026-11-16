@@ -1,83 +1,95 @@
 const std = @import("std");
 const c = @import("c");
 
-var global_profiler: ?*Profiler = null;
+const max_anchors = 4096;
 
-pub fn init(allocator: std.mem.Allocator) !void {
-    global_profiler = try Profiler.new(allocator);
+var anchors: [max_anchors]ProfileAnchor = undefined;
+var anchor_count: usize = 0;
+var cpu_freq: u64 = 0;
+var start_time: u64 = 0;
+
+pub fn init() void {
+    anchor_count = 0;
+    cpu_freq = c.EstimateCPUFrequency(100);
+    start_time = c.GetRDTSC();
 }
 
-pub fn deinit() void {
-    global_profiler.?.deinit();
-    global_profiler = null;
+const ProfileAnchor = struct {
+    src: std.builtin.SourceLocation,
+    name: ?[]const u8,
+    elapsed: u64,
+    hits: u64,
+    depth: u32,
+};
+
+pub const Timer = struct {
+    index: usize,
+    start_time: u64,
+
+    pub fn stop(self: Timer) void {
+        const now = c.GetRDTSC();
+        const anchor = &anchors[self.index];
+
+        anchor.depth -= 1;
+        if (anchor.depth == 0) {
+            anchor.elapsed += now - self.start_time;
+        }
+
+        anchor.hits += 1;
+    }
+};
+
+pub fn startTimer(src: std.builtin.SourceLocation) Timer {
+    return start(src, null);
 }
 
-pub fn start(name: []const u8) Timer {
-    return global_profiler.?.start(name);
+pub fn startNamedTimer(src: std.builtin.SourceLocation, name: []const u8) Timer {
+    return start(src, name);
+}
+
+fn getIndex(src: std.builtin.SourceLocation, name: ?[]const u8) usize {
+    for (anchors[0..anchor_count], 0..) |*anchor, i| {
+        if (anchor.src.file.ptr == src.file.ptr and anchor.src.line == src.line and anchor.src.column == src.column) return i;
+    }
+
+    std.debug.assert(anchor_count < max_anchors);
+
+    const i = anchor_count;
+    anchor_count += 1;
+    anchors[i] = .{
+        .src = src,
+        .name = name,
+        .elapsed = 0,
+        .hits = 0,
+        .depth = 0,
+    };
+
+    return i;
+}
+
+fn start(src: std.builtin.SourceLocation, name: ?[]const u8) Timer {
+    const i = getIndex(src, name);
+    anchors[i].depth += 1;
+    return Timer{ .index = i, .start_time = c.GetRDTSC() };
 }
 
 pub fn print(writer: *std.Io.Writer) !void {
-    try global_profiler.?.print(writer);
-}
+    const total = c.GetRDTSC() - start_time;
 
-const Timer = struct {
-    profiler: *Profiler,
-    name: []const u8,
-    start_time: u64,
-    end_time: u64,
+    try writer.print("\nTotal time: {d:.4}ms (CPU freq {d})\n", .{
+        @as(f64, @floatFromInt(total)) / (@as(f64, @floatFromInt(cpu_freq)) / 1000),
+        cpu_freq,
+    });
 
-    pub fn stop(self: *Timer) void {
-        self.end_time = c.GetRDTSC();
-        self.profiler.timers.append(self.profiler.allocator, self.*) catch unreachable;
-    }
-};
-
-const Profiler = struct {
-    allocator: std.mem.Allocator,
-    timers: std.ArrayList(Timer),
-    cpu_freq: u64,
-    start_time: u64,
-
-    fn new(allocator: std.mem.Allocator) !*Profiler {
-        const profiler = try allocator.create(Profiler);
-
-        profiler.* = Profiler{
-            .allocator = allocator,
-            .timers = .empty,
-            .cpu_freq = c.EstimateCPUFrequency(100),
-            .start_time = c.GetRDTSC(),
-        };
-
-        return profiler;
-    }
-
-    fn start(self: *Profiler, name: []const u8) Timer {
-        return Timer{
-            .profiler = self,
-            .name = name,
-            .start_time = c.GetRDTSC(),
-            .end_time = 0.0,
-        };
-    }
-
-    fn print(self: *Profiler, writer: *std.Io.Writer) !void {
-        const total_time = c.GetRDTSC() - self.start_time;
-        try writer.print("\nTotal time: {d:.4}ms (CPU freq {d})\n", .{
-            @as(f64, @floatFromInt(total_time)) / (@as(f64, @floatFromInt(self.cpu_freq)) / 1000),
-            self.cpu_freq,
+    for (anchors[0..anchor_count]) |anchor| {
+        try writer.print("  {s}[{d}] ({s} {d}:{d}): {d} ({d:.2}%)\n", .{
+            anchor.name orelse anchor.src.fn_name,
+            anchor.hits,
+            anchor.src.file,
+            anchor.src.line,
+            anchor.src.column,
+            anchor.elapsed,
+            @as(f64, @floatFromInt(anchor.elapsed)) / @as(f64, @floatFromInt(total)) * 100,
         });
-
-        for (self.timers.items) |timer| {
-            const time = timer.end_time - timer.start_time;
-            try writer.print("  {s}: {d} ({d:.2}%)\n", .{
-                timer.name,
-                time,
-                @as(f64, @floatFromInt(time)) / @as(f64, @floatFromInt(total_time)) * 100,
-            });
-        }
     }
-
-    fn deinit(self: *Profiler) void {
-        self.timers.deinit(self.allocator);
-    }
-};
+}

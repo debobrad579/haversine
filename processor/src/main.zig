@@ -9,10 +9,10 @@ const profiler = @import("profiler.zig");
 const EARTH_RADIUS = 6372.8;
 
 pub fn main(init: std.process.Init) !void {
+    profiler.init();
+
     const io = init.io;
     const gpa = init.gpa;
-
-    try profiler.init(gpa);
 
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
@@ -31,7 +31,7 @@ pub fn main(init: std.process.Init) !void {
     const path = args[1];
     const answers_path = if (args.len == 3) args[2] else null;
 
-    var read_timer = profiler.start("Read");
+    var read_timer = profiler.startNamedTimer(@src(), "Read");
 
     const json_data = try std.Io.Dir.cwd().readFileAlloc(
         io,
@@ -42,11 +42,8 @@ pub fn main(init: std.process.Init) !void {
 
     read_timer.stop();
 
-    var parse_timer = profiler.start("Parse");
-
-    const data = try json.parse_json(json_data, arena);
-
-    parse_timer.stop();
+    var data = try json.parseJSON(json_data, arena);
+    data = try json.parseJSON(json_data, arena);
 
     gpa.free(json_data);
 
@@ -60,7 +57,7 @@ pub fn main(init: std.process.Init) !void {
     else
         null;
 
-    var sum_timer = profiler.start("Sum");
+    var sum_timer = profiler.startNamedTimer(@src(), "Sum");
 
     var sum: f64 = 0.0;
     var count: f64 = 0.0;
@@ -117,7 +114,6 @@ pub fn main(init: std.process.Init) !void {
     }
 
     try profiler.print(stdout_writer);
-    profiler.deinit();
 
     try stdout_writer.flush();
 }
