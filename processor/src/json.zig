@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
 const profiler = @import("profiler.zig");
 
@@ -60,10 +59,6 @@ pub fn parseJSON(json: []const u8, allocator: std.mem.Allocator) JSONParseError!
         .position = 0,
         .allocator = allocator,
     };
-
-    if (builtin.is_test) {
-        return parseValue(&parser);
-    }
 
     var timer = profiler.startTimer(@src());
     defer timer.stop();

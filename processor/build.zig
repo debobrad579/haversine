@@ -22,6 +22,12 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const profile = b.option(bool, "profile", "Enable the profiler") orelse false;
+
+    const options = b.addOptions();
+    options.addOption(bool, "profile", profile);
+    exe.root_module.addOptions("build_options", options);
+
     exe.root_module.addCSourceFile(.{
         .file = b.path("src/haversine.c"),
         .flags = &.{},

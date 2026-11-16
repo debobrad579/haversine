@@ -1,6 +1,8 @@
 const std = @import("std");
 const c = @import("c");
 
+pub const enabled = if (@import("builtin").is_test) false else @import("build_options").profile;
+
 const max_anchors = 4096;
 const no_parent = std.math.maxInt(usize);
 
@@ -26,14 +28,14 @@ const ProfileAnchor = struct {
     hits: u64,
 };
 
-pub const Timer = struct {
+const ActiveTimer = struct {
     index: usize,
     parent: usize,
     start_time: u64,
     old_inclusive: u64,
     depth: usize,
 
-    pub fn stop(self: Timer) void {
+    pub fn stop(self: ActiveTimer) void {
         const now = c.GetRDTSC();
 
         if (stack_depth != self.depth + 1) {
@@ -62,11 +64,21 @@ pub const Timer = struct {
     }
 };
 
+const NoopTimer = struct {
+    pub fn stop(_: NoopTimer) void {}
+};
+
+pub const Timer = if (enabled) ActiveTimer else NoopTimer;
+
 pub fn startTimer(src: std.builtin.SourceLocation) Timer {
+    if (!enabled) return .{};
+
     return start(src, null);
 }
 
 pub fn startNamedTimer(src: std.builtin.SourceLocation, name: []const u8) Timer {
+    if (!enabled) return .{};
+
     return start(src, name);
 }
 
@@ -115,6 +127,8 @@ pub fn print(writer: *std.Io.Writer) !void {
         @as(f64, @floatFromInt(total)) / (@as(f64, @floatFromInt(cpu_freq)) / 1000),
         cpu_freq,
     });
+
+    if (!enabled) return;
 
     for (anchors[0..anchor_count]) |anchor| {
         try writer.print("  {s}[{d}] ({s} {d}:{d}): {d} ({d:.2}%)", .{
