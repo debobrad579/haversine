@@ -33,7 +33,7 @@ pub fn main(init: std.process.Init) !void {
 
     var read_timer = profiler.startNamedTimer(@src(), "Read");
 
-    const json_data = try std.Io.Dir.cwd().readFileAlloc(
+    const data = try std.Io.Dir.cwd().readFileAlloc(
         io,
         path,
         gpa,
@@ -42,9 +42,9 @@ pub fn main(init: std.process.Init) !void {
 
     read_timer.stop();
 
-    const data = try json.parseJSON(json_data, arena);
+    const json_data = try json.parse(data, gpa);
 
-    gpa.free(json_data);
+    gpa.free(data);
 
     const answers_data = if (answers_path) |answers|
         try std.Io.Dir.cwd().readFileAlloc(
@@ -61,7 +61,7 @@ pub fn main(init: std.process.Init) !void {
     var sum: f64 = 0.0;
     var count: f64 = 0.0;
 
-    for (data.Object.get("pairs").?.Array, 0..) |pair, i| {
+    for (json_data.data.Object.get("pairs").?.Array, 0..) |pair, i| {
         const x0 = pair.Object.get("x0").?.Float;
         const y0 = pair.Object.get("y0").?.Float;
         const x1 = pair.Object.get("x1").?.Float;
@@ -93,6 +93,8 @@ pub fn main(init: std.process.Init) !void {
     }
 
     sum_timer.stop();
+
+    json_data.free();
 
     const average = sum / count;
 
