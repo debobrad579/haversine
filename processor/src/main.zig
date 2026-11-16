@@ -42,8 +42,7 @@ pub fn main(init: std.process.Init) !void {
 
     read_timer.stop();
 
-    var data = try json.parseJSON(json_data, arena);
-    data = try json.parseJSON(json_data, arena);
+    const data = try json.parseJSON(json_data, arena);
 
     gpa.free(json_data);
 
