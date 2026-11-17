@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const exe = b.addExecutable(.{
-        .name = "processor_zig",
+        .name = "haversine_prcessor",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -51,4 +51,27 @@ pub fn build(b: *std.Build) void {
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_exe_tests.step);
+
+    const rt_exe = b.addExecutable(.{
+        .name = "repetition_tester",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/repetition_testing/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "c", .module = translate_c.createModule() },
+            },
+        }),
+    });
+
+    rt_exe.root_module.addCSourceFile(.{
+        .file = b.path("src/rdtsc.c"),
+        .flags = &.{},
+    });
+    rt_exe.root_module.link_libc = true;
+
+    const rt_run_step = b.step("rt", "Run repetition tester");
+    const rt_cmd = b.addRunArtifact(rt_exe);
+    rt_run_step.dependOn(&rt_cmd.step);
+    rt_cmd.addPassthruArgs();
 }
