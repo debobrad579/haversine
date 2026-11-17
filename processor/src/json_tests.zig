@@ -5,129 +5,129 @@ test "parse null" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("null", arena.allocator());
+    const value = try json.parse("null", arena.allocator());
 
-    try std.testing.expectEqual({}, value.Null);
+    try std.testing.expectEqual({}, value.data.Null);
 }
 
 test "parse null caps" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("NULL", arena.allocator());
+    const value = try json.parse("NULL", arena.allocator());
 
-    try std.testing.expectEqual({}, value.Null);
+    try std.testing.expectEqual({}, value.data.Null);
 }
 
 test "parse true" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("true", arena.allocator());
+    const value = try json.parse("true", arena.allocator());
 
-    try std.testing.expectEqual(true, value.Bool);
+    try std.testing.expectEqual(true, value.data.Bool);
 }
 
 test "parse true caps" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("TRUE", arena.allocator());
+    const value = try json.parse("TRUE", arena.allocator());
 
-    try std.testing.expectEqual(true, value.Bool);
+    try std.testing.expectEqual(true, value.data.Bool);
 }
 
 test "parse false" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("false", arena.allocator());
+    const value = try json.parse("false", arena.allocator());
 
-    try std.testing.expectEqual(false, value.Bool);
+    try std.testing.expectEqual(false, value.data.Bool);
 }
 
 test "parse false caps" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("FALSE", arena.allocator());
+    const value = try json.parse("FALSE", arena.allocator());
 
-    try std.testing.expectEqual(false, value.Bool);
+    try std.testing.expectEqual(false, value.data.Bool);
 }
 
 test "parse integer" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("1234", arena.allocator());
+    const value = try json.parse("1234", arena.allocator());
 
-    try std.testing.expectEqual(1234, value.Int);
+    try std.testing.expectEqual(1234, value.data.Int);
 }
 
 test "parse negative integer" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("-1234", arena.allocator());
+    const value = try json.parse("-1234", arena.allocator());
 
-    try std.testing.expectEqual(-1234, value.Int);
+    try std.testing.expectEqual(-1234, value.data.Int);
 }
 
 test "parse float" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("2.72", arena.allocator());
+    const value = try json.parse("2.72", arena.allocator());
 
-    try std.testing.expectEqual(2.72, value.Float);
+    try std.testing.expectEqual(2.72, value.data.Float);
 }
 
 test "parse negative float" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("-2.72", arena.allocator());
+    const value = try json.parse("-2.72", arena.allocator());
 
-    try std.testing.expectEqual(-2.72, value.Float);
+    try std.testing.expectEqual(-2.72, value.data.Float);
 }
 
 test "parse scientific notation" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("1e+9", arena.allocator());
+    const value = try json.parse("1e+9", arena.allocator());
 
-    try std.testing.expectEqual(1e9, value.Float);
+    try std.testing.expectEqual(1e9, value.data.Float);
 }
 
 test "parse scientific notation negative exponent" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("1e-9", arena.allocator());
+    const value = try json.parse("1e-9", arena.allocator());
 
-    try std.testing.expectEqual(1e-9, value.Float);
+    try std.testing.expectEqual(1e-9, value.data.Float);
 }
 
 test "parse string" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("\"Hello, World!\"", arena.allocator());
+    const value = try json.parse("\"Hello, World!\"", arena.allocator());
 
-    try std.testing.expectEqualStrings("Hello, World!", value.String);
+    try std.testing.expectEqualStrings("Hello, World!", value.data.String);
 }
 
 test "parse array empty" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("[]", arena.allocator());
+    const value = try json.parse("[]", arena.allocator());
 
     try std.testing.expectEqualSlices(
         json.Data,
         &[_]json.Data{},
-        value.Array,
+        value.data.Array,
     );
 }
 
@@ -135,7 +135,7 @@ test "parse array" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON(
+    const value = try json.parse(
         "[1, null, true, [1.2, \"hi\"]]",
         arena.allocator(),
     );
@@ -150,7 +150,7 @@ test "parse array" {
                 json.Data{ .String = "hi" },
             } },
         },
-        value.Array,
+        value.data.Array,
     );
 }
 
@@ -158,11 +158,11 @@ test "parse object empty" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON("{}", arena.allocator());
+    const value = try json.parse("{}", arena.allocator());
 
     try std.testing.expectEqualDeep(
         json.Object{ .entries = &[_]json.Object.Entry{} },
-        value.Object,
+        value.data.Object,
     );
 }
 
@@ -170,7 +170,7 @@ test "parse object" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const value = try json.parseJSON(
+    const value = try json.parse(
         "{\"Int\": 1, \"Null\": null, \"Bool\": true, \"Array\": [{\"Float\": 1.2}, \"hi\"]}",
         arena.allocator(),
     );
@@ -194,6 +194,6 @@ test "parse object" {
                 json.Data{ .String = "hi" },
             } } },
         } },
-        value.Object,
+        value.data.Object,
     );
 }
