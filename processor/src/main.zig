@@ -31,9 +31,12 @@ pub fn main(init: std.process.Init) !void {
     const path = args[1];
     const answers_path = if (args.len == 3) args[2] else null;
 
-    var read_timer = profiler.startNamedTimer(@src(), "Read");
+    const dir = std.Io.Dir.cwd();
+    const stat = try dir.statFile(io, path, .{});
 
-    const data = try std.Io.Dir.cwd().readFileAlloc(
+    var read_timer = profiler.startTimerBandwidth(@src(), "Read", stat.size);
+
+    const data = try dir.readFileAlloc(
         io,
         path,
         gpa,
@@ -56,12 +59,14 @@ pub fn main(init: std.process.Init) !void {
     else
         null;
 
-    var sum_timer = profiler.startNamedTimer(@src(), "Sum");
+    const pairs = json_data.data.Object.get("pairs").?.Array;
+
+    var sum_timer = profiler.startTimerBandwidth(@src(), "Sum", pairs.len * 5 * @sizeOf(json.Data));
 
     var sum: f64 = 0.0;
     var count: f64 = 0.0;
 
-    for (json_data.data.Object.get("pairs").?.Array, 0..) |pair, i| {
+    for (pairs, 0..) |pair, i| {
         const x0 = pair.Object.get("x0").?.Float;
         const y0 = pair.Object.get("y0").?.Float;
         const x1 = pair.Object.get("x1").?.Float;

@@ -26,6 +26,7 @@ const ProfileAnchor = struct {
     elapsed_exclusive: u64,
     elapsed_inclusive: u64,
     hits: u64,
+    processed_byte_count: u64,
 };
 
 const ActiveTimer = struct {
@@ -60,7 +61,6 @@ const ActiveTimer = struct {
         anchor.elapsed_exclusive +%= elapsed;
 
         anchor.elapsed_inclusive = self.old_inclusive + elapsed;
-        anchor.hits += 1;
     }
 };
 
@@ -73,18 +73,32 @@ pub const Timer = if (enabled) ActiveTimer else NoopTimer;
 pub fn startTimer(src: std.builtin.SourceLocation) Timer {
     if (!enabled) return .{};
 
-    return start(src, null);
+    return start(src, null, 0);
 }
 
-pub fn startNamedTimer(src: std.builtin.SourceLocation, name: []const u8) Timer {
+pub fn startTimerNamed(src: std.builtin.SourceLocation, name: []const u8) Timer {
     if (!enabled) return .{};
 
-    return start(src, name);
+    return start(src, name, 0);
 }
 
-fn getIndex(src: std.builtin.SourceLocation, name: ?[]const u8) usize {
+pub fn startTimerBandwidth(
+    src: std.builtin.SourceLocation,
+    name: ?[]const u8,
+    processed_byte_count: u64,
+) Timer {
+    if (!enabled) return .{};
+
+    return start(src, name, processed_byte_count);
+}
+
+fn getIndex(src: std.builtin.SourceLocation, name: ?[]const u8, processed_byte_count: u64) usize {
     for (anchors[0..anchor_count], 0..) |*anchor, i| {
-        if (anchor.src.file.ptr == src.file.ptr and anchor.src.line == src.line and anchor.src.column == src.column) return i;
+        if (anchor.src.file.ptr == src.file.ptr and anchor.src.line == src.line and anchor.src.column == src.column) {
+            anchor.hits += 1;
+            anchor.processed_byte_count += processed_byte_count;
+            return i;
+        }
     }
 
     std.debug.assert(anchor_count < max_anchors);
@@ -97,13 +111,14 @@ fn getIndex(src: std.builtin.SourceLocation, name: ?[]const u8) usize {
         .elapsed_exclusive = 0,
         .elapsed_inclusive = 0,
         .hits = 0,
+        .processed_byte_count = processed_byte_count,
     };
 
     return i;
 }
 
-fn start(src: std.builtin.SourceLocation, name: ?[]const u8) Timer {
-    const i = getIndex(src, name);
+fn start(src: std.builtin.SourceLocation, name: ?[]const u8, processed_byte_count: u64) Timer {
+    const i = getIndex(src, name, processed_byte_count);
 
     const parent = current_parent;
     current_parent = i;
@@ -145,6 +160,16 @@ pub fn print(writer: *std.Io.Writer) !void {
             try writer.print(", {d} w/ children ({d:.2}%)", .{
                 anchor.elapsed_inclusive,
                 @as(f64, @floatFromInt(anchor.elapsed_inclusive)) / @as(f64, @floatFromInt(total)) * 100,
+            });
+        }
+
+        if (anchor.processed_byte_count != 0) {
+            const seconds = @as(f64, @floatFromInt(anchor.elapsed_inclusive)) / @as(f64, @floatFromInt(cpu_freq));
+            const bytes_per_second = @as(f64, @floatFromInt(anchor.processed_byte_count)) / seconds;
+
+            try writer.print(", {d:.3}MiB at {d:.2}GiB/s", .{
+                @as(f64, @floatFromInt(anchor.processed_byte_count)) / (1024.0 * 1024.0),
+                bytes_per_second / (1024.0 * 1024.0 * 1024.0),
             });
         }
 

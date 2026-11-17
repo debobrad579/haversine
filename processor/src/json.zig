@@ -93,7 +93,7 @@ pub fn parse(json: []const u8, allocator: std.mem.Allocator) JSONParseError!JSON
         .allocator = allocator,
     };
 
-    var timer = profiler.startTimer(@src());
+    var timer = profiler.startTimerBandwidth(@src(), null, json.len);
     defer timer.stop();
 
     return JSON{ .data = try parseValue(&parser), .allocator = allocator };
