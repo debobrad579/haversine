@@ -55,6 +55,14 @@ pub const Tester = struct {
         };
     }
 
+    pub fn reset(self: *Tester, expected_bytes: u64) void {
+        self.expected_bytes = expected_bytes;
+        self.last_best_at = c.GetRDTSC();
+        self.state = .testing;
+        self.stats = .{};
+        self.trial = .{};
+    }
+
     pub fn begin(self: *Tester) void {
         self.trial.opens += 1;
         self.trial.ticks -%= c.GetRDTSC();
@@ -90,10 +98,15 @@ pub const Tester = struct {
         return true;
     }
 
-    fn finishTrial(self: *Tester, now: u64) Error!void {
+    fn finishTrial(self: *Tester, now: u64) !void {
         if (self.trial.opens != self.trial.closes) return Error.UnbalancedBlocks;
         if (self.trial.bytes != self.expected_bytes) return Error.ByteCountMismatch;
-        if (self.stats.add(self.trial.ticks)) self.last_best_at = now;
+        if (self.stats.add(self.trial.ticks)) {
+            try self.printRow("Min", self.trial.ticks);
+            try self.writer.print("\r", .{});
+            try self.writer.flush();
+            self.last_best_at = now;
+        }
         self.trial = .{};
     }
 
@@ -104,8 +117,13 @@ pub const Tester = struct {
         }
 
         try self.printRow("Min", self.stats.min);
+        try self.writer.print("\n", .{});
         try self.printRow("Max", self.stats.max);
+        try self.writer.print("\n", .{});
         try self.printRow("Avg", self.stats.total / self.stats.count);
+        try self.writer.print("\n", .{});
+
+        try self.writer.flush();
     }
 
     fn printRow(self: Tester, label: []const u8, ticks: u64) !void {
@@ -120,6 +138,6 @@ pub const Tester = struct {
             });
         }
 
-        try self.writer.print("\n", .{});
+        try self.writer.print("      ", .{});
     }
 };
