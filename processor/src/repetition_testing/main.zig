@@ -17,6 +17,9 @@ pub fn main(init: std.process.Init) !void {
     // try read.readSliceShort(io, gpa, stdout_writer);
 
     try write.mmapWriteForward(stdout_writer);
+    try write.mmapWriteForwardAlloc(stdout_writer);
     try write.mmapWriteBackward(stdout_writer);
+    try write.mmapWriteBackwardAlloc(stdout_writer);
     try write.mmapWriteConverge(stdout_writer);
+    try write.mmapWriteConvergeAlloc(stdout_writer);
 }
