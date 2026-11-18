@@ -8,7 +8,7 @@ const SIZE = 1024 * 1024 * 1024;
 pub fn mmapWriteForward(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteForward:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     const memory = try std.posix.mmap(
@@ -34,7 +34,7 @@ pub fn mmapWriteForward(writer: *std.Io.Writer) !void {
 pub fn mmapWriteForwardAlloc(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteForwardAlloc:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     while (try tester.isTesting()) {
@@ -60,7 +60,7 @@ pub fn mmapWriteForwardAlloc(writer: *std.Io.Writer) !void {
 pub fn mmapWriteBackward(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteBackward:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     const memory = try std.posix.mmap(
@@ -87,7 +87,7 @@ pub fn mmapWriteBackward(writer: *std.Io.Writer) !void {
 pub fn mmapWriteBackwardAlloc(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteBackwardAlloc:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     while (try tester.isTesting()) {
@@ -114,7 +114,7 @@ pub fn mmapWriteBackwardAlloc(writer: *std.Io.Writer) !void {
 pub fn mmapWriteConverge(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteConverge:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     const memory = try std.posix.mmap(
@@ -149,7 +149,7 @@ pub fn mmapWriteConverge(writer: *std.Io.Writer) !void {
 pub fn mmapWriteConvergeAlloc(writer: *std.Io.Writer) !void {
     var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
 
-    try writer.writeAll("mmapWriteConvergeAlloc:\n");
+    try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
 
     while (try tester.isTesting()) {
