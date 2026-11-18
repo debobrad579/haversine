@@ -61,8 +61,7 @@ pub const Tester = struct {
         };
     }
 
-    pub fn reset(self: *Tester, expected_bytes: u64) void {
-        self.expected_bytes = expected_bytes;
+    pub fn reset(self: *Tester) void {
         self.last_best_at = c.GetRDTSC();
         self.state = .testing;
         self.stats = .{};
