@@ -33,7 +33,7 @@ pub fn build(b: *std.Build) void {
         .flags = &.{},
     });
     exe.root_module.addCSourceFile(.{
-        .file = b.path("src/rdtsc.c"),
+        .file = b.path("src/metrics.c"),
         .flags = &.{},
     });
     exe.root_module.link_libc = true;
@@ -65,7 +65,7 @@ pub fn build(b: *std.Build) void {
     });
 
     rt_exe.root_module.addCSourceFile(.{
-        .file = b.path("src/rdtsc.c"),
+        .file = b.path("src/metrics.c"),
         .flags = &.{},
     });
     rt_exe.root_module.link_libc = true;

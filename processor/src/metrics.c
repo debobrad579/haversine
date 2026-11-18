@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <sys/resource.h>
 #include <sys/time.h>
 #include <x86intrin.h>
 
@@ -15,7 +16,7 @@ static u64 ReadOSTimer() {
   return Result;
 }
 
-u64 GetRDTSC() { return __rdtsc(); }
+u64 GetRDTSC(void) { return __rdtsc(); }
 
 u64 EstimateCPUFrequency(u64 MillisecondsToWait) {
   u64 OSFreq = GetOSTimerFreq();
@@ -38,4 +39,13 @@ u64 EstimateCPUFrequency(u64 MillisecondsToWait) {
   } else {
     return OSFreq * CPUElapsed / OSElapsed;
   }
+}
+
+u64 ReadOSPageFaultCount(void) {
+  struct rusage Usage = {};
+  getrusage(RUSAGE_SELF, &Usage);
+
+  u64 Result = Usage.ru_minflt + Usage.ru_majflt;
+
+  return Result;
 }

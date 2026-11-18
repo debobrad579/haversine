@@ -15,8 +15,8 @@ pub fn main(init: std.process.Init) !void {
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, path, .{});
 
-    var rep_tester = tester.init(c.EstimateCPUFrequency(100), 10, stat.size, stdout_writer);
-    try stdout_writer.print("readFileAlloc:\n", .{});
+    var rep_tester = tester.init(c.EstimateCPUFrequency(100), 1, stat.size, stdout_writer);
+    try stdout_writer.writeAll("readFileAlloc:\n");
     try stdout_writer.flush();
     while (try rep_tester.isTesting()) {
         rep_tester.begin();
@@ -32,7 +32,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     rep_tester.reset(stat.size);
-    try stdout_writer.print("readSliceShort (alloc inside loop):\n", .{});
+    try stdout_writer.writeAll("readSliceShort (alloc inside loop):\n");
     try stdout_writer.flush();
     while (try rep_tester.isTesting()) {
         const file = try std.Io.Dir.cwd().openFile(
@@ -54,7 +54,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     rep_tester.reset(stat.size);
-    try stdout_writer.print("readSliceShort (alloc outside loop):\n", .{});
+    try stdout_writer.writeAll("readSliceShort (alloc outside loop):\n");
     try stdout_writer.flush();
     const file = try std.Io.Dir.cwd().openFile(
         io,
