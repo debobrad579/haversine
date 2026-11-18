@@ -43,9 +43,11 @@ pub fn main(init: std.process.Init) !void {
         .limited(1024 * 1024 * 1024),
     );
 
+    var json_arena: std.heap.ArenaAllocator = .init(arena);
+
     read_timer.stop();
 
-    const json_data = try json.parse(data, gpa);
+    const json_data = try json.parse(data, &json_arena);
 
     gpa.free(data);
 
@@ -59,7 +61,7 @@ pub fn main(init: std.process.Init) !void {
     else
         null;
 
-    const pairs = json_data.data.Object.get("pairs").?.Array;
+    const pairs = json_data.Object.get("pairs").?.Array;
 
     var sum_timer = profiler.startTimerBandwidth(@src(), "Sum", pairs.len * 5 * @sizeOf(json.Data));
 
@@ -99,7 +101,9 @@ pub fn main(init: std.process.Init) !void {
 
     sum_timer.stop();
 
-    json_data.free();
+    var json_free_timer = profiler.startTimerNamed(@src(), "free");
+    json_arena.deinit();
+    json_free_timer.stop();
 
     const average = sum / count;
 

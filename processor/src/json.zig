@@ -53,50 +53,17 @@ pub const Parser = struct {
     allocator: std.mem.Allocator,
 };
 
-pub const JSON = struct {
-    data: Data,
-    allocator: std.mem.Allocator,
-
-    pub fn free(self: JSON) void {
-        var timer = profiler.startTimer(@src());
-        defer timer.stop();
-        self.freeValue(self.data);
-    }
-
-    fn freeValue(self: JSON, value: Data) void {
-        switch (value) {
-            .String => |string| {
-                self.allocator.free(string);
-            },
-            .Array => |array| {
-                for (array) |element| {
-                    self.freeValue(element);
-                }
-                self.allocator.free(array);
-            },
-            .Object => |object| {
-                for (object.entries) |entry| {
-                    self.allocator.free(entry.key);
-                    self.freeValue(entry.value);
-                }
-                self.allocator.free(object.entries);
-            },
-            else => {},
-        }
-    }
-};
-
-pub fn parse(json: []const u8, allocator: std.mem.Allocator) JSONParseError!JSON {
+pub fn parse(json: []const u8, arena: *std.heap.ArenaAllocator) JSONParseError!Data {
     var parser = Parser{
         .json = json,
         .position = 0,
-        .allocator = allocator,
+        .allocator = arena.allocator(),
     };
 
     var timer = profiler.startTimerBandwidth(@src(), null, json.len);
     defer timer.stop();
 
-    return JSON{ .data = try parseValue(&parser), .allocator = allocator };
+    return parseValue(&parser);
 }
 
 fn parseValue(parser: *Parser) JSONParseError!Data {
