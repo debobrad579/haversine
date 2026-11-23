@@ -52,6 +52,10 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_exe_tests.step);
 
+    const nasm = b.addSystemCommand(&.{ "nasm", "-f", "elf64", "-o" });
+    const obj = nasm.addOutputFileArg("nop_loop.o");
+    nasm.addFileArg(b.path("src/repetition_testing/asm/nop_loop.asm"));
+
     const rt_exe = b.addExecutable(.{
         .name = "repetition_tester",
         .root_module = b.createModule(.{
@@ -69,6 +73,7 @@ pub fn build(b: *std.Build) void {
         .flags = &.{},
     });
     rt_exe.root_module.link_libc = true;
+    rt_exe.root_module.addObjectFile(obj);
 
     const rt_run_step = b.step("rt", "Run repetition tester");
     const rt_cmd = b.addRunArtifact(rt_exe);
