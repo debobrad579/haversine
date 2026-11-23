@@ -15,14 +15,14 @@ pub fn main(init: std.process.Init) !void {
     // try read.readSliceShortAlloc(io, init.gpa, stdout_writer);
     // try read.readSliceShort(io, init.gpa, stdout_writer);
 
-    // try write.mmapWriteForward(stdout_writer);
-    // try write.mmapWriteForwardAlloc(stdout_writer);
-    // try write.mmapWriteBackward(stdout_writer);
-    // try write.mmapWriteBackwardAlloc(stdout_writer);
-    // try write.mmapWriteConverge(stdout_writer);
-    // try write.mmapWriteConvergeAlloc(stdout_writer);
+    try write.mmapWriteForward(stdout_writer);
+    try write.mmapWriteForwardAlloc(stdout_writer);
+    try write.mmapWriteBackward(stdout_writer);
+    try write.mmapWriteBackwardAlloc(stdout_writer);
+    try write.mmapWriteConverge(stdout_writer);
+    try write.mmapWriteConvergeAlloc(stdout_writer);
 
-    try read.mmap(io, stdout_writer);
-    try read.mmapAlloc(io, stdout_writer);
-    try read.mmapAllocPopulate(io, stdout_writer);
+    // try read.mmap(io, stdout_writer);
+    // try read.mmapAlloc(io, stdout_writer);
+    // try read.mmapAllocPopulate(io, stdout_writer);
 }

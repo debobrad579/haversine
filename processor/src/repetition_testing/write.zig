@@ -23,8 +23,8 @@ pub fn mmapWriteForward(writer: *std.Io.Writer) !void {
 
     while (try tester.isTesting()) {
         tester.begin();
-        for (memory) |*byte| {
-            byte.* = ' ';
+        for (0..memory.len) |i| {
+            memory[i] = @truncate(i);
         }
         tester.end();
         tester.addBytes(SIZE);
@@ -49,8 +49,8 @@ pub fn mmapWriteForwardAlloc(writer: *std.Io.Writer) !void {
         defer std.posix.munmap(memory);
 
         tester.begin();
-        for (memory) |*byte| {
-            byte.* = ' ';
+        for (0..memory.len) |i| {
+            memory[i] = @truncate(i);
         }
         tester.end();
         tester.addBytes(SIZE);
@@ -77,7 +77,7 @@ pub fn mmapWriteBackward(writer: *std.Io.Writer) !void {
         var bytes_left: usize = SIZE;
         tester.begin();
         while (bytes_left > 0) : (bytes_left -= 1) {
-            memory[bytes_left - 1] = ' ';
+            memory[bytes_left - 1] = @truncate(bytes_left - 1);
         }
         tester.end();
         tester.addBytes(SIZE);
@@ -104,7 +104,7 @@ pub fn mmapWriteBackwardAlloc(writer: *std.Io.Writer) !void {
         var bytes_left: usize = SIZE;
         tester.begin();
         while (bytes_left > 0) : (bytes_left -= 1) {
-            memory[bytes_left - 1] = ' ';
+            memory[bytes_left - 1] = @truncate(bytes_left - 1);
         }
         tester.end();
         tester.addBytes(SIZE);
@@ -134,11 +134,11 @@ pub fn mmapWriteConverge(writer: *std.Io.Writer) !void {
         tester.begin();
         while (left < right) {
             left += 1;
-            memory[left - 1] = ' ';
+            memory[left - 1] = @truncate(left - 1);
 
             if (left < right) {
                 right -= 1;
-                memory[right] = ' ';
+                memory[right] = @truncate(right);
             }
         }
         tester.end();
@@ -169,11 +169,11 @@ pub fn mmapWriteConvergeAlloc(writer: *std.Io.Writer) !void {
         tester.begin();
         while (left < right) {
             left += 1;
-            memory[left - 1] = ' ';
+            memory[left - 1] = @truncate(left - 1);
 
             if (left < right) {
                 right -= 1;
-                memory[right] = ' ';
+                memory[right] = @truncate(right);
             }
         }
         tester.end();
