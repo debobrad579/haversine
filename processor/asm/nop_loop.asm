@@ -3,6 +3,9 @@ global NOPAllBytesASM
 global CMPAllBytesASM
 global DECAllBytesASM
 
+global NOP1x3AllBytesASM
+global NOP1x9AllBytesASM
+
 MOVAllBytesASM:
     xor rax, rax
 .loop:
@@ -33,4 +36,32 @@ DECAllBytesASM:
 .loop:
     dec rdi
     jnz .loop
+    ret
+
+NOP1x3AllBytesASM:
+    xor rax, rax
+.loop:
+    nop
+    nop
+    nop
+    inc rax
+    cmp rax, rdi
+    jb .loop
+    ret
+
+NOP1x9AllBytesASM:
+    xor rax, rax
+.loop:
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    inc rax
+    cmp rax, rdi
+    jb .loop
     ret

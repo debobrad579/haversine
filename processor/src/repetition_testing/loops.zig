@@ -7,6 +7,8 @@ extern fn MOVAllBytesASM(count: u64, data: [*]u8) void;
 extern fn NOPAllBytesASM(count: u64) void;
 extern fn CMPAllBytesASM(count: u64) void;
 extern fn DECAllBytesASM(count: u64) void;
+extern fn NOP1x3AllBytesASM(count: u64) void;
+extern fn NOP1x9AllBytesASM(count: u64) void;
 
 const SIZE = 1024 * 1024 * 1024;
 
@@ -24,10 +26,12 @@ pub fn testLoops(writer: *std.Io.Writer) !void {
     defer std.posix.munmap(buffer);
 
     try writeToAllBytes(&tester, buffer, writer);
-    try movAllBytes(&tester, buffer, writer);
+    // try movAllBytes(&tester, buffer, writer);
     try nopAllBytes(&tester, buffer, writer);
-    try cmpAllBytes(&tester, buffer, writer);
-    try decAllBytes(&tester, buffer, writer);
+    // try cmpAllBytes(&tester, buffer, writer);
+    // try decAllBytes(&tester, buffer, writer);
+    try nop1x3AllBytes(&tester, buffer, writer);
+    try nop1x9AllBytes(&tester, buffer, writer);
 }
 
 fn writeToAllBytes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
@@ -95,6 +99,34 @@ fn decAllBytes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
     while (try tester.isTesting()) {
         tester.begin();
         DECAllBytesASM(buffer.len);
+        tester.end();
+        tester.addBytes(buffer.len);
+    }
+
+    tester.reset();
+}
+
+fn nop1x3AllBytes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    try writer.print("{s}:\n", .{@src().fn_name});
+    try writer.flush();
+
+    while (try tester.isTesting()) {
+        tester.begin();
+        NOP1x3AllBytesASM(buffer.len);
+        tester.end();
+        tester.addBytes(buffer.len);
+    }
+
+    tester.reset();
+}
+
+fn nop1x9AllBytes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    try writer.print("{s}:\n", .{@src().fn_name});
+    try writer.flush();
+
+    while (try tester.isTesting()) {
+        tester.begin();
+        NOP1x9AllBytesASM(buffer.len);
         tester.end();
         tester.addBytes(buffer.len);
     }
