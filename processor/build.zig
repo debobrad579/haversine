@@ -4,12 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const translate_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-
     const exe = b.addExecutable(.{
         .name = "haversine_prcessor",
         .root_module = b.createModule(.{
@@ -17,7 +11,16 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "c", .module = translate_c.createModule() },
+                .{ .name = "haversine.h", .module = b.addTranslateC(.{
+                    .root_source_file = b.path("c/haversine.h"),
+                    .target = target,
+                    .optimize = optimize,
+                }).createModule() },
+                .{ .name = "metrics.h", .module = b.addTranslateC(.{
+                    .root_source_file = b.path("c/metrics.h"),
+                    .target = target,
+                    .optimize = optimize,
+                }).createModule() },
             },
         }),
     });
@@ -29,11 +32,11 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addOptions("build_options", options);
 
     exe.root_module.addCSourceFile(.{
-        .file = b.path("src/haversine.c"),
+        .file = b.path("c/haversine.c"),
         .flags = &.{},
     });
     exe.root_module.addCSourceFile(.{
-        .file = b.path("src/metrics.c"),
+        .file = b.path("c/metrics.c"),
         .flags = &.{},
     });
     exe.root_module.link_libc = true;
@@ -54,7 +57,7 @@ pub fn build(b: *std.Build) void {
 
     const nasm = b.addSystemCommand(&.{ "nasm", "-f", "elf64", "-o" });
     const obj = nasm.addOutputFileArg("nop_loop.o");
-    nasm.addFileArg(b.path("src/repetition_testing/asm/nop_loop.asm"));
+    nasm.addFileArg(b.path("asm/nop_loop.asm"));
 
     const rt_exe = b.addExecutable(.{
         .name = "repetition_tester",
@@ -63,13 +66,17 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "c", .module = translate_c.createModule() },
+                .{ .name = "metrics.h", .module = b.addTranslateC(.{
+                    .root_source_file = b.path("c/metrics.h"),
+                    .target = target,
+                    .optimize = optimize,
+                }).createModule() },
             },
         }),
     });
 
     rt_exe.root_module.addCSourceFile(.{
-        .file = b.path("src/metrics.c"),
+        .file = b.path("c/metrics.c"),
         .flags = &.{},
     });
     rt_exe.root_module.link_libc = true;

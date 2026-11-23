@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c");
+const metrics = @import("metrics.h");
 
 pub const enabled = if (@import("builtin").is_test) false else @import("build_options").profile;
 
@@ -16,8 +16,8 @@ var stack_depth: usize = 0;
 pub fn init() void {
     anchor_count = 0;
     current_parent = no_parent;
-    cpu_freq = c.EstimateCPUFrequency(100);
-    start_time = c.GetRDTSC();
+    cpu_freq = metrics.EstimateCPUFrequency(100);
+    start_time = metrics.GetRDTSC();
 }
 
 const ProfileAnchor = struct {
@@ -37,7 +37,7 @@ const ActiveTimer = struct {
     depth: usize,
 
     pub fn stop(self: ActiveTimer) void {
-        const now = c.GetRDTSC();
+        const now = metrics.GetRDTSC();
 
         if (stack_depth != self.depth + 1) {
             const anchor = &anchors[self.index];
@@ -131,12 +131,12 @@ fn start(src: std.builtin.SourceLocation, name: ?[]const u8, processed_byte_coun
         .parent = parent,
         .old_inclusive = anchors[i].elapsed_inclusive,
         .depth = depth,
-        .start_time = c.GetRDTSC(),
+        .start_time = metrics.GetRDTSC(),
     };
 }
 
 pub fn print(writer: *std.Io.Writer) !void {
-    const total = c.GetRDTSC() - start_time;
+    const total = metrics.GetRDTSC() - start_time;
 
     try writer.print("\nTotal time: {d:.4}ms (CPU freq {d})\n", .{
         @as(f64, @floatFromInt(total)) / (@as(f64, @floatFromInt(cpu_freq)) / 1000),

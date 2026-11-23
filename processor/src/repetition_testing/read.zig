@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c");
+const metrics = @import("metrics.h");
 
 const t = @import("tester.zig").Tester;
 
@@ -9,7 +9,7 @@ pub fn readFileAlloc(io: std.Io, allocator: std.mem.Allocator, writer: *std.Io.W
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -32,7 +32,7 @@ pub fn readSliceShortAlloc(io: std.Io, allocator: std.mem.Allocator, writer: *st
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -64,7 +64,7 @@ pub fn readSliceShort(io: std.Io, allocator: std.mem.Allocator, writer: *std.Io.
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -96,7 +96,7 @@ pub fn mmap(io: std.Io, writer: *std.Io.Writer) !void {
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -135,7 +135,7 @@ pub fn mmapAlloc(io: std.Io, writer: *std.Io.Writer) !void {
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -173,7 +173,7 @@ pub fn mmapAllocPopulate(io: std.Io, writer: *std.Io.Writer) !void {
     const dir = std.Io.Dir.cwd();
     const stat = try dir.statFile(io, PATH, .{});
 
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, stat.size, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, stat.size, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();

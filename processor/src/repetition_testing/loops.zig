@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c");
+const metrics = @import("metrics.h");
 
 const t = @import("tester.zig").Tester;
 
@@ -11,7 +11,7 @@ extern fn DECAllBytesASM(count: u64) void;
 const SIZE = 1024 * 1024 * 1024;
 
 pub fn testLoops(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     const buffer = try std.posix.mmap(
         null,

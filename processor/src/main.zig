@@ -1,7 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
 
-const c = @import("c");
+const c = @import("haversine.h");
 
 const json = @import("json.zig");
 const profiler = @import("profiler.zig");

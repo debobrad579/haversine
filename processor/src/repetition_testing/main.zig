@@ -1,5 +1,4 @@
 const std = @import("std");
-const c = @import("c");
 
 const read = @import("read.zig");
 const write = @import("write.zig");

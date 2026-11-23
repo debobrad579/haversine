@@ -1,12 +1,12 @@
 const std = @import("std");
-const c = @import("c");
+const metrics = @import("metrics.h");
 
 const t = @import("tester.zig").Tester;
 
 const SIZE = 1024 * 1024 * 1024;
 
 pub fn mmapWriteForward(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -32,7 +32,7 @@ pub fn mmapWriteForward(writer: *std.Io.Writer) !void {
 }
 
 pub fn mmapWriteForwardAlloc(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -58,7 +58,7 @@ pub fn mmapWriteForwardAlloc(writer: *std.Io.Writer) !void {
 }
 
 pub fn mmapWriteBackward(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -85,7 +85,7 @@ pub fn mmapWriteBackward(writer: *std.Io.Writer) !void {
 }
 
 pub fn mmapWriteBackwardAlloc(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -112,7 +112,7 @@ pub fn mmapWriteBackwardAlloc(writer: *std.Io.Writer) !void {
 }
 
 pub fn mmapWriteConverge(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();
@@ -147,7 +147,7 @@ pub fn mmapWriteConverge(writer: *std.Io.Writer) !void {
 }
 
 pub fn mmapWriteConvergeAlloc(writer: *std.Io.Writer) !void {
-    var tester = t.init(c.EstimateCPUFrequency(100), 1, SIZE, writer);
+    var tester = t.init(metrics.EstimateCPUFrequency(100), 1, SIZE, writer);
 
     try writer.print("{s}:\n", .{@src().fn_name});
     try writer.flush();

@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c");
+const metrics = @import("metrics.h");
 
 const Error = error{
     UnbalancedBlocks,
@@ -56,13 +56,13 @@ pub const Tester = struct {
             .cpu_freq = cpu_freq,
             .expected_bytes = expected_bytes,
             .timeout = timeout_seconds * cpu_freq,
-            .last_best_at = c.GetRDTSC(),
+            .last_best_at = metrics.GetRDTSC(),
             .writer = writer,
         };
     }
 
     pub fn reset(self: *Tester) void {
-        self.last_best_at = c.GetRDTSC();
+        self.last_best_at = metrics.GetRDTSC();
         self.state = .testing;
         self.stats = .{};
         self.trial = .{};
@@ -70,14 +70,14 @@ pub const Tester = struct {
 
     pub fn begin(self: *Tester) void {
         self.trial.opens += 1;
-        self.trial.ticks -%= c.GetRDTSC();
-        self.trial.page_faults -%= c.ReadOSPageFaultCount();
+        self.trial.ticks -%= metrics.GetRDTSC();
+        self.trial.page_faults -%= metrics.ReadOSPageFaultCount();
     }
 
     pub fn end(self: *Tester) void {
         self.trial.closes += 1;
-        self.trial.ticks +%= c.GetRDTSC();
-        self.trial.page_faults +%= c.ReadOSPageFaultCount();
+        self.trial.ticks +%= metrics.GetRDTSC();
+        self.trial.page_faults +%= metrics.ReadOSPageFaultCount();
     }
 
     pub fn addBytes(self: *Tester, n: u64) void {
@@ -87,7 +87,7 @@ pub const Tester = struct {
     pub fn isTesting(self: *Tester) !bool {
         if (self.state != .testing) return false;
 
-        const now = c.GetRDTSC();
+        const now = metrics.GetRDTSC();
 
         if (self.trial.opens != 0) {
             self.finishTrial(now) catch |err| {
@@ -143,7 +143,7 @@ pub const Tester = struct {
         try self.writer.print("{s}: {d:.4}ms", .{ label, seconds * 1000.0 });
 
         if (self.expected_bytes != 0) {
-            try self.writer.print(", {d:.2}GiB/s", .{
+            try self.writer.print(", {d:.4}GiB/s", .{
                 @as(f64, @floatFromInt(self.expected_bytes)) / seconds / (1024.0 * 1024.0 * 1024.0),
             });
         }
