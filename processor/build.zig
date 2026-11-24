@@ -56,8 +56,8 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_tests.step);
 
     const nasm = b.addSystemCommand(&.{ "nasm", "-f", "elf64", "-o" });
-    const obj = nasm.addOutputFileArg("nop_loop.o");
-    nasm.addFileArg(b.path("asm/nop_loop.asm"));
+    const obj = nasm.addOutputFileArg("asm.o");
+    nasm.addFileArg(b.path("asm/loops.asm"));
 
     const rt_exe = b.addExecutable(.{
         .name = "repetition_tester",

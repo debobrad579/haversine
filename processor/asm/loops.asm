@@ -6,6 +6,8 @@ global NOP3x1AllBytes
 global NOP1x3AllBytes
 global NOP1x9AllBytes
 
+global ConditionalNOP
+
 MOVAllBytes:
     xor rax, rax
 .loop:
@@ -61,6 +63,18 @@ NOP1x9AllBytes:
     nop
     nop
     nop
+    inc rax
+    cmp rax, rdi
+    jb .loop
+    ret
+
+ConditionalNOP:
+    xor rax, rax
+.loop:
+    test byte [rsi + rax], 1
+    jnz .skip
+    nop
+.skip:
     inc rax
     cmp rax, rdi
     jb .loop
