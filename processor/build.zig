@@ -71,31 +71,32 @@ pub fn build(b: *std.Build) !void {
         }),
     });
 
-    var asm_dir = try std.Io.Dir.cwd().openDir(
-        b.graph.io,
-        "asm",
-        .{ .iterate = true },
-    );
-    defer asm_dir.close(b.graph.io);
+    const asm_files = [_][]const u8{
+        "loops.asm",
+        "multi_nops.asm",
+        "conditional_nop.asm",
+        "alignment.asm",
+        "rat.asm",
+        "read_unroll.asm",
+        "write_unroll.asm",
+    };
 
-    var asm_iter = asm_dir.iterate();
-    while (try asm_iter.next(b.graph.io)) |file| {
-        if (file.kind == .file and std.mem.endsWith(u8, file.name, ".asm")) {
-            const output_name = b.fmt("{s}.o", .{
-                file.name[0 .. file.name.len - 4],
-            });
+    for (asm_files) |file_name| {
+        const file = b.fmt("asm/{s}", .{file_name});
+        const output_name = b.fmt("{s}.o", .{
+            std.fs.path.stem(file),
+        });
 
-            const nasm = b.addSystemCommand(&.{
-                "nasm",
-                "-f",
-                "elf64",
-                "-o",
-            });
+        const nasm = b.addSystemCommand(&.{
+            "nasm",
+            "-f",
+            "elf64",
+            "-o",
+        });
 
-            const obj = nasm.addOutputFileArg(output_name);
-            nasm.addFileArg(b.path(b.fmt("asm/{s}", .{file.name})));
-            rt_exe.root_module.addObjectFile(obj);
-        }
+        const obj = nasm.addOutputFileArg(output_name);
+        nasm.addFileArg(b.path(file));
+        rt_exe.root_module.addObjectFile(obj);
     }
 
     rt_exe.root_module.addCSourceFile(.{

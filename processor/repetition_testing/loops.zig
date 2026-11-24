@@ -27,8 +27,18 @@ const asm_ns = struct {
     // pub extern fn NOPAligned31(count: u64, data: [*]u8) void;
     // pub extern fn NOPAligned63(count: u64, data: [*]u8) void;
 
-    pub extern fn RATAdd(count: u64, data: [*]u8) void;
-    pub extern fn RATMovAdd(count: u64, data: [*]u8) void;
+    // pub extern fn RATAdd(count: u64, data: [*]u8) void;
+    // pub extern fn RATMovAdd(count: u64, data: [*]u8) void;
+
+    pub extern fn Read_x1(count: u64, data: [*]u8) void;
+    pub extern fn Read_x2(count: u64, data: [*]u8) void;
+    pub extern fn Read_x3(count: u64, data: [*]u8) void;
+    pub extern fn Read_x4(count: u64, data: [*]u8) void;
+
+    pub extern fn Write_x1(count: u64, data: [*]u8) void;
+    pub extern fn Write_x2(count: u64, data: [*]u8) void;
+    pub extern fn Write_x3(count: u64, data: [*]u8) void;
+    pub extern fn Write_x4(count: u64, data: [*]u8) void;
 };
 
 extern fn ConditionalNOP(count: u64, data: [*]u8) void;

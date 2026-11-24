@@ -2,7 +2,7 @@ global RATAdd
 global RATMovAdd
 
 RATAdd:
-align 64
+    align 64
 .loop:
     add rcx, 1
     add rcx, 1
@@ -11,7 +11,7 @@ align 64
     ret
 
 RATMovAdd:
-align 64
+    align 64
 .loop:
     mov rcx, rdi
     add rcx, 1
