@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -55,10 +55,6 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_exe_tests.step);
 
-    const nasm = b.addSystemCommand(&.{ "nasm", "-f", "elf64", "-o" });
-    const obj = nasm.addOutputFileArg("asm.o");
-    nasm.addFileArg(b.path("asm/loops.asm"));
-
     const rt_exe = b.addExecutable(.{
         .name = "repetition_tester",
         .root_module = b.createModule(.{
@@ -75,12 +71,38 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    var asm_dir = try std.Io.Dir.cwd().openDir(
+        b.graph.io,
+        "asm",
+        .{ .iterate = true },
+    );
+    defer asm_dir.close(b.graph.io);
+
+    var asm_iter = asm_dir.iterate();
+    while (try asm_iter.next(b.graph.io)) |file| {
+        if (file.kind == .file and std.mem.endsWith(u8, file.name, ".asm")) {
+            const output_name = b.fmt("{s}.o", .{
+                file.name[0 .. file.name.len - 4],
+            });
+
+            const nasm = b.addSystemCommand(&.{
+                "nasm",
+                "-f",
+                "elf64",
+                "-o",
+            });
+
+            const obj = nasm.addOutputFileArg(output_name);
+            nasm.addFileArg(b.path(b.fmt("asm/{s}", .{file.name})));
+            rt_exe.root_module.addObjectFile(obj);
+        }
+    }
+
     rt_exe.root_module.addCSourceFile(.{
         .file = b.path("c/metrics.c"),
         .flags = &.{},
     });
     rt_exe.root_module.link_libc = true;
-    rt_exe.root_module.addObjectFile(obj);
 
     const rt_run_step = b.step("rt", "Run repetition tester");
     const rt_cmd = b.addRunArtifact(rt_exe);
