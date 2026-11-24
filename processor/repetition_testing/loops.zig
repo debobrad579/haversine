@@ -16,9 +16,16 @@ const asm_ns = struct {
     // pub extern fn MOVAllBytes(count: u64, data: [*]u8) void;
     // pub extern fn CMPAllBytes(count: u64, data: [*]u8) void;
     // pub extern fn DECAllBytes(count: u64, data: [*]u8) void;
+
     // pub extern fn NOP3x1AllBytes(count: u64, data: [*]u8) void;
     // pub extern fn NOP1x3AllBytes(count: u64, data: [*]u8) void;
     // pub extern fn NOP1x9AllBytes(count: u64, data: [*]u8) void;
+
+    pub extern fn NOPAligned64(count: u64, data: [*]u8) void;
+    pub extern fn NOPAligned1(count: u64, data: [*]u8) void;
+    pub extern fn NOPAligned15(count: u64, data: [*]u8) void;
+    pub extern fn NOPAligned31(count: u64, data: [*]u8) void;
+    pub extern fn NOPAligned63(count: u64, data: [*]u8) void;
 };
 
 extern fn ConditionalNOP(count: u64, data: [*]u8) void;
@@ -44,7 +51,7 @@ pub fn testLoops(writer: *std.Io.Writer) !void {
         try runASM(&tester, buffer, writer, decl, @field(asm_ns, decl));
     }
 
-    try testBranchPrediction(&tester, buffer, writer);
+    // try testBranchPrediction(&tester, buffer, writer);
 }
 
 fn runASM(
