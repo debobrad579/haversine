@@ -7,7 +7,7 @@ Write_x1:
     align 64
 .loop:
     mov qword [rsi], rax
-    sub rdi, 1
+    sub rdi, 8
     jnle .loop
     ret
 
@@ -16,7 +16,7 @@ Write_x2:
 .loop:
     mov qword [rsi], rax
     mov qword [rsi], rax
-    sub rdi, 2
+    sub rdi, 16
     jnle .loop
     ret
 
@@ -26,7 +26,7 @@ Write_x3:
     mov qword [rsi], rax
     mov qword [rsi], rax
     mov qword [rsi], rax
-    sub rdi, 3
+    sub rdi, 24
     jnle .loop
     ret
 
@@ -37,6 +37,6 @@ Write_x4:
     mov qword [rsi], rax
     mov qword [rsi], rax
     mov qword [rsi], rax
-    sub rdi, 4
+    sub rdi, 32
     jnle .loop
     ret

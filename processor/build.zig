@@ -79,6 +79,8 @@ pub fn build(b: *std.Build) !void {
         "rat.asm",
         "read_unroll.asm",
         "write_unroll.asm",
+        "read_width.asm",
+        "write_width.asm",
     };
 
     for (asm_files) |file_name| {

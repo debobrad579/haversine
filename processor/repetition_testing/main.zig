@@ -2,7 +2,7 @@ const std = @import("std");
 
 const read = @import("read.zig");
 const write = @import("write.zig");
-const testLoops = @import("loops.zig").testLoops;
+const testAsm = @import("asm.zig").testAsm;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
@@ -26,5 +26,5 @@ pub fn main(init: std.process.Init) !void {
     // try read.mmapAlloc(io, stdout_writer);
     // try read.mmapAllocPopulate(io, stdout_writer);
 
-    try testLoops(stdout_writer);
+    try testAsm(stdout_writer);
 }
