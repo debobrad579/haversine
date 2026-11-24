@@ -40,18 +40,19 @@ const asm_ns = struct {
     // pub extern fn Write_x3(count: u64, data: [*]u8) void;
     // pub extern fn Write_x4(count: u64, data: [*]u8) void;
 
-    pub extern fn Read_4x2(count: u64, data: [*]u8) void;
-    pub extern fn Read_8x2(count: u64, data: [*]u8) void;
-    pub extern fn Read_16x2(count: u64, data: [*]u8) void;
-    pub extern fn Read_32x2(count: u64, data: [*]u8) void;
+    // pub extern fn Read_4x2(count: u64, data: [*]u8) void;
+    // pub extern fn Read_8x2(count: u64, data: [*]u8) void;
+    // pub extern fn Read_16x2(count: u64, data: [*]u8) void;
+    // pub extern fn Read_32x2(count: u64, data: [*]u8) void;
 
-    pub extern fn Write_4x2(count: u64, data: [*]u8) void;
-    pub extern fn Write_8x2(count: u64, data: [*]u8) void;
-    pub extern fn Write_16x2(count: u64, data: [*]u8) void;
-    pub extern fn Write_32x2(count: u64, data: [*]u8) void;
+    // pub extern fn Write_4x2(count: u64, data: [*]u8) void;
+    // pub extern fn Write_8x2(count: u64, data: [*]u8) void;
+    // pub extern fn Write_16x2(count: u64, data: [*]u8) void;
+    // pub extern fn Write_32x2(count: u64, data: [*]u8) void;
 };
 
 extern fn ConditionalNOP(count: u64, data: [*]u8) void;
+extern fn TestCacheSizes(count: u64, data: [*]u8, amount: u64) void;
 
 const AsmFn = *const fn (u64, [*]u8) callconv(.c) void;
 
@@ -75,6 +76,7 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     }
 
     // try testBranchPrediction(&tester, buffer, writer);
+    try testCacheSizes(&tester, buffer, writer);
 }
 
 fn runASM(
@@ -126,6 +128,41 @@ fn testBranchPrediction(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void 
         while (try tester.isTesting()) {
             tester.begin();
             ConditionalNOP(buffer.len, buffer.ptr);
+            tester.end();
+            tester.addBytes(buffer.len);
+        }
+    }
+}
+
+fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    inline for ([_]u64{
+        16,
+        32,
+        48,
+        64,
+        128,
+        192,
+        256,
+        512,
+        1024,
+        2 * 1024,
+        4 * 1024,
+        8 * 1024,
+        16 * 1024,
+        32 * 1024,
+    }) |amount| {
+        if (amount >= 1024) {
+            try writer.print("TestCacheSizes ({d}MiB):\n", .{amount / 1024});
+        } else {
+            try writer.print("TestCacheSizes ({d}kiB):\n", .{amount});
+        }
+        try writer.flush();
+
+        tester.reset();
+
+        while (try tester.isTesting()) {
+            tester.begin();
+            TestCacheSizes(buffer.len, buffer.ptr, amount * 1024 - 1);
             tester.end();
             tester.addBytes(buffer.len);
         }
