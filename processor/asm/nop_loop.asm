@@ -1,12 +1,12 @@
-global MOVAllBytesASM
-global NOPAllBytesASM
-global CMPAllBytesASM
-global DECAllBytesASM
+global MOVAllBytes
+global CMPAllBytes
+global DECAllBytes
 
-global NOP1x3AllBytesASM
-global NOP1x9AllBytesASM
+global NOP3x1AllBytes
+global NOP1x3AllBytes
+global NOP1x9AllBytes
 
-MOVAllBytesASM:
+MOVAllBytes:
     xor rax, rax
 .loop:
     mov [rsi + rax], al
@@ -15,7 +15,21 @@ MOVAllBytesASM:
     jb .loop
     ret
 
-NOPAllBytesASM:
+CMPAllBytes:
+    xor rax, rax
+.loop:
+    inc rax
+    cmp rax, rdi
+    jb .loop
+    ret
+
+DECAllBytes:
+.loop:
+    dec rdi
+    jnz .loop
+    ret
+
+NOP3x1AllBytes:
     xor rax, rax
 .loop:
     db 0x0f, 0x1f, 0x00
@@ -24,21 +38,7 @@ NOPAllBytesASM:
     jb .loop
     ret
 
-CMPAllBytesASM:
-    xor rax, rax
-.loop:
-    inc rax
-    cmp rax, rdi
-    jb .loop
-    ret
-
-DECAllBytesASM:
-.loop:
-    dec rdi
-    jnz .loop
-    ret
-
-NOP1x3AllBytesASM:
+NOP1x3AllBytes:
     xor rax, rax
 .loop:
     nop
@@ -49,7 +49,7 @@ NOP1x3AllBytesASM:
     jb .loop
     ret
 
-NOP1x9AllBytesASM:
+NOP1x9AllBytes:
     xor rax, rax
 .loop:
     nop
