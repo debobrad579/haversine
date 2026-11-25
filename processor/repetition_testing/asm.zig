@@ -167,25 +167,29 @@ fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
     MOVAllBytes(buffer.len, buffer.ptr);
 
     var bytes: u64 = 16 * 1024;
-    var adder: u64 = 16 * 1024;
-    var i: usize = 0;
-    while (bytes <= buffer.len) : (bytes += adder) {
-        i += 1;
+    var delta: u64 = 2 * 1024;
+    while (bytes <= buffer.len) : (bytes += delta) {
+        const chunk_size: u64 = 256;
+
+        const processed = @min(
+            buffer.len,
+            ((buffer.len + bytes - 1) / bytes) * (bytes / chunk_size) * chunk_size,
+        );
 
         try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
         try writer.flush();
 
-        tester.reset();
+        var new_tester = t.init(tester.cpu_freq, 1, processed, writer);
 
-        while (try tester.isTesting()) {
-            tester.begin();
+        while (try new_tester.isTesting()) {
+            new_tester.begin();
             TestCacheSizes(buffer.len, buffer.ptr, bytes);
-            tester.end();
-            tester.addBytes(buffer.len);
+            new_tester.end();
+            new_tester.addBytes(processed);
         }
 
-        if (i % 4 == 0) {
-            adder *= 2;
+        if ((bytes - 1) & bytes == 0) {
+            delta *= 2;
         }
     }
 }
