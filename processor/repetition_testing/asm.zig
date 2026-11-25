@@ -13,47 +13,48 @@ const FillPattern = enum {
 };
 
 const asm_ns = struct {
-    // pub extern fn MOVAllBytes(count: u64, data: [*]u8) void;
-    // pub extern fn CMPAllBytes(count: u64, data: [*]u8) void;
-    // pub extern fn DECAllBytes(count: u64, data: [*]u8) void;
+    // pub extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
+    // pub extern fn CMPAllBytes(len: u64, ptr: [*]u8) void;
+    // pub extern fn DECAllBytes(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn NOP3x1AllBytes(count: u64, data: [*]u8) void;
-    // pub extern fn NOP1x3AllBytes(count: u64, data: [*]u8) void;
-    // pub extern fn NOP1x9AllBytes(count: u64, data: [*]u8) void;
+    // pub extern fn NOP3x1AllBytes(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOP1x3AllBytes(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOP1x9AllBytes(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn NOPAligned64(count: u64, data: [*]u8) void;
-    // pub extern fn NOPAligned1(count: u64, data: [*]u8) void;
-    // pub extern fn NOPAligned15(count: u64, data: [*]u8) void;
-    // pub extern fn NOPAligned31(count: u64, data: [*]u8) void;
-    // pub extern fn NOPAligned63(count: u64, data: [*]u8) void;
+    // pub extern fn NOPAligned64(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOPAligned1(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOPAligned15(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOPAligned31(len: u64, ptr: [*]u8) void;
+    // pub extern fn NOPAligned63(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn RATAdd(count: u64, data: [*]u8) void;
-    // pub extern fn RATMovAdd(count: u64, data: [*]u8) void;
+    // pub extern fn RATAdd(len: u64, ptr: [*]u8) void;
+    // pub extern fn RATMovAdd(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn Read_x1(count: u64, data: [*]u8) void;
-    // pub extern fn Read_x2(count: u64, data: [*]u8) void;
-    // pub extern fn Read_x3(count: u64, data: [*]u8) void;
-    // pub extern fn Read_x4(count: u64, data: [*]u8) void;
+    // pub extern fn Read_x1(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_x3(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_x4(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn Write_x1(count: u64, data: [*]u8) void;
-    // pub extern fn Write_x2(count: u64, data: [*]u8) void;
-    // pub extern fn Write_x3(count: u64, data: [*]u8) void;
-    // pub extern fn Write_x4(count: u64, data: [*]u8) void;
+    // pub extern fn Write_x1(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_x3(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_x4(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn Read_4x2(count: u64, data: [*]u8) void;
-    // pub extern fn Read_8x2(count: u64, data: [*]u8) void;
-    // pub extern fn Read_16x2(count: u64, data: [*]u8) void;
-    // pub extern fn Read_32x2(count: u64, data: [*]u8) void;
+    // pub extern fn Read_4x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_8x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_16x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Read_32x2(len: u64, ptr: [*]u8) void;
 
-    // pub extern fn Write_4x2(count: u64, data: [*]u8) void;
-    // pub extern fn Write_8x2(count: u64, data: [*]u8) void;
-    // pub extern fn Write_16x2(count: u64, data: [*]u8) void;
-    // pub extern fn Write_32x2(count: u64, data: [*]u8) void;
+    // pub extern fn Write_4x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_8x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_16x2(len: u64, ptr: [*]u8) void;
+    // pub extern fn Write_32x2(len: u64, ptr: [*]u8) void;
 };
 
-extern fn MOVAllBytes(count: u64, data: [*]u8) void;
-extern fn ConditionalNOP(count: u64, data: [*]u8) void;
-extern fn TestCacheSizes(count: u64, data: [*]u8, amount: u64) void;
+extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
+extern fn ConditionalNOP(len: u64, ptr: [*]u8) void;
+extern fn TestCacheSizesPowerOf2(len: u64, ptr: [*]u8, mask: u64) void;
+extern fn TestCacheSizes(len: u64, ptr: [*]u8, amount: u64) void;
 
 const AsmFn = *const fn (u64, [*]u8) callconv(.c) void;
 
@@ -77,6 +78,7 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     }
 
     // try testBranchPrediction(&tester, buffer, writer);
+    // try testCacheSizesPowerOf2(&tester, buffer, writer);
     try testCacheSizes(&tester, buffer, writer);
 }
 
@@ -135,18 +137,18 @@ fn testBranchPrediction(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void 
     }
 }
 
-fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    for (14..31) |power| {
-        MOVAllBytes(buffer.len, buffer.ptr);
+fn testCacheSizesPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    MOVAllBytes(buffer.len, buffer.ptr);
 
-        const amount = (@as(u64, 1) << @as(u6, @intCast(power)));
+    for (10..31) |power| {
+        const bytes = (@as(u64, 1) << @as(u6, @intCast(power)));
 
-        if (amount >= 1024 * 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}GiB):\n", .{amount / 1024 / 1024 / 1024});
-        } else if (amount >= 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}MiB):\n", .{amount / 1024 / 1024});
+        if (bytes >= 1024 * 1024 * 1024) {
+            try writer.print("TestCacheSizes ({d}GiB):\n", .{bytes / 1024 / 1024 / 1024});
+        } else if (bytes >= 1024 * 1024) {
+            try writer.print("TestCacheSizes ({d}MiB):\n", .{bytes / 1024 / 1024});
         } else {
-            try writer.print("TestCacheSizes ({d}KiB):\n", .{amount / 1024});
+            try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
         }
         try writer.flush();
 
@@ -154,13 +156,36 @@ fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
 
         while (try tester.isTesting()) {
             tester.begin();
-            TestCacheSizes(
-                buffer.len,
-                buffer.ptr,
-                amount - 1,
-            );
+            TestCacheSizesPowerOf2(buffer.len, buffer.ptr, bytes - 1);
             tester.end();
             tester.addBytes(buffer.len);
+        }
+    }
+}
+
+fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    MOVAllBytes(buffer.len, buffer.ptr);
+
+    var bytes: u64 = 16 * 1024;
+    var adder: u64 = 16 * 1024;
+    var i: usize = 0;
+    while (bytes <= buffer.len) : (bytes += adder) {
+        i += 1;
+
+        try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
+        try writer.flush();
+
+        tester.reset();
+
+        while (try tester.isTesting()) {
+            tester.begin();
+            TestCacheSizes(buffer.len, buffer.ptr, bytes);
+            tester.end();
+            tester.addBytes(buffer.len);
+        }
+
+        if (i % 4 == 0) {
+            adder *= 2;
         }
     }
 }
