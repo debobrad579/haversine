@@ -14,7 +14,7 @@ const FillPattern = enum {
 };
 
 const asm_ns = struct {
-    // pub extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
+    pub extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
     // pub extern fn CMPAllBytes(len: u64, ptr: [*]u8) void;
     // pub extern fn DECAllBytes(len: u64, ptr: [*]u8) void;
 
@@ -50,6 +50,15 @@ const asm_ns = struct {
     // pub extern fn Write_8x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_16x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_32x2(len: u64, ptr: [*]u8) void;
+
+    pub extern fn L1CacheRead(len: u64, ptr: [*]u8) void;
+    pub extern fn L1CacheReadUnaligned(len: u64, ptr: [*]u8) void;
+    pub extern fn L2CacheRead(len: u64, ptr: [*]u8) void;
+    pub extern fn L2CacheReadUnaligned(len: u64, ptr: [*]u8) void;
+    pub extern fn L3CacheRead(len: u64, ptr: [*]u8) void;
+    pub extern fn L3CacheReadUnaligned(len: u64, ptr: [*]u8) void;
+    pub extern fn MainMemoryRead(len: u64, ptr: [*]u8) void;
+    pub extern fn MainMemoryReadUnaligned(len: u64, ptr: [*]u8) void;
 };
 
 extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
@@ -80,7 +89,7 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
 
     // try testBranchPrediction(&tester, buffer, writer);
     // try cache.testCacheSizesPowerOf2(&tester, buffer, writer);
-    try cache.testCacheSizes(&tester, buffer, writer);
+    // try cache.testCacheSizes(&tester, buffer, writer);
 }
 
 fn runASM(

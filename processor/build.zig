@@ -82,6 +82,7 @@ pub fn build(b: *std.Build) !void {
         "read_width.asm",
         "write_width.asm",
         "cache_sizes.asm",
+        "cache_alignment.asm",
     };
 
     for (asm_files) |file_name| {
