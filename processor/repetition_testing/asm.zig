@@ -1,5 +1,6 @@
 const std = @import("std");
 const metrics = @import("metrics.h");
+const cache = @import("cache.zig");
 
 const t = @import("tester.zig").Tester;
 
@@ -78,8 +79,8 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     }
 
     // try testBranchPrediction(&tester, buffer, writer);
-    // try testCacheSizesPowerOf2(&tester, buffer, writer);
-    try testCacheSizes(&tester, buffer, writer);
+    // try cache.testCacheSizesPowerOf2(&tester, buffer, writer);
+    try cache.testCacheSizes(&tester, buffer, writer);
 }
 
 fn runASM(
@@ -133,63 +134,6 @@ fn testBranchPrediction(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void 
             ConditionalNOP(buffer.len, buffer.ptr);
             tester.end();
             tester.addBytes(buffer.len);
-        }
-    }
-}
-
-fn testCacheSizesPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    MOVAllBytes(buffer.len, buffer.ptr);
-
-    for (10..31) |power| {
-        const bytes = (@as(u64, 1) << @as(u6, @intCast(power)));
-
-        if (bytes >= 1024 * 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}GiB):\n", .{bytes / 1024 / 1024 / 1024});
-        } else if (bytes >= 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}MiB):\n", .{bytes / 1024 / 1024});
-        } else {
-            try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
-        }
-        try writer.flush();
-
-        tester.reset();
-
-        while (try tester.isTesting()) {
-            tester.begin();
-            TestCacheSizesPowerOf2(buffer.len, buffer.ptr, bytes - 1);
-            tester.end();
-            tester.addBytes(buffer.len);
-        }
-    }
-}
-
-fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    MOVAllBytes(buffer.len, buffer.ptr);
-
-    var bytes: u64 = 16 * 1024;
-    var delta: u64 = 2 * 1024;
-    while (bytes <= buffer.len) : (bytes += delta) {
-        const chunk_size: u64 = 256;
-
-        const processed = @min(
-            buffer.len,
-            ((buffer.len + bytes - 1) / bytes) * (bytes / chunk_size) * chunk_size,
-        );
-
-        try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
-        try writer.flush();
-
-        var new_tester = t.init(tester.cpu_freq, 1, processed, writer);
-
-        while (try new_tester.isTesting()) {
-            new_tester.begin();
-            TestCacheSizes(buffer.len, buffer.ptr, bytes);
-            new_tester.end();
-            new_tester.addBytes(processed);
-        }
-
-        if ((bytes - 1) & bytes == 0) {
-            delta *= 2;
         }
     }
 }
