@@ -51,6 +51,7 @@ const asm_ns = struct {
     // pub extern fn Write_32x2(count: u64, data: [*]u8) void;
 };
 
+extern fn MOVAllBytes(count: u64, data: [*]u8) void;
 extern fn ConditionalNOP(count: u64, data: [*]u8) void;
 extern fn TestCacheSizes(count: u64, data: [*]u8, amount: u64) void;
 
@@ -135,26 +136,17 @@ fn testBranchPrediction(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void 
 }
 
 fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    inline for ([_]u64{
-        16,
-        32,
-        48,
-        64,
-        128,
-        192,
-        256,
-        512,
-        1024,
-        2 * 1024,
-        4 * 1024,
-        8 * 1024,
-        16 * 1024,
-        32 * 1024,
-    }) |amount| {
-        if (amount >= 1024) {
-            try writer.print("TestCacheSizes ({d}MiB):\n", .{amount / 1024});
+    for (14..31) |power| {
+        MOVAllBytes(buffer.len, buffer.ptr);
+
+        const amount = (@as(u64, 1) << @as(u6, @intCast(power)));
+
+        if (amount >= 1024 * 1024 * 1024) {
+            try writer.print("TestCacheSizes ({d}GiB):\n", .{amount / 1024 / 1024 / 1024});
+        } else if (amount >= 1024 * 1024) {
+            try writer.print("TestCacheSizes ({d}MiB):\n", .{amount / 1024 / 1024});
         } else {
-            try writer.print("TestCacheSizes ({d}kiB):\n", .{amount});
+            try writer.print("TestCacheSizes ({d}KiB):\n", .{amount / 1024});
         }
         try writer.flush();
 
@@ -162,7 +154,11 @@ fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
 
         while (try tester.isTesting()) {
             tester.begin();
-            TestCacheSizes(buffer.len, buffer.ptr, amount * 1024 - 1);
+            TestCacheSizes(
+                buffer.len,
+                buffer.ptr,
+                amount - 1,
+            );
             tester.end();
             tester.addBytes(buffer.len);
         }
