@@ -50,6 +50,9 @@ const asm_ns = struct {
     // pub extern fn Write_8x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_16x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_32x2(len: u64, ptr: [*]u8) void;
+
+    pub extern fn WriteEvery256Read(len: u64, ptr: [*]u8) void;
+    pub extern fn WriteEvery256ReadNT(len: u64, ptr: [*]u8) void;
 };
 
 extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
@@ -82,7 +85,7 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     // try cache.testCacheSizes(&tester, buffer, writer);
     // try cache.testCacheSizesNonPowerOf2(&tester, buffer, writer);
     // try cache.testCacheLineAlignment(&tester, buffer, writer);
-    try cache.testCacheIndexing(&tester, buffer, writer);
+    // try cache.testCacheIndexing(&tester, buffer, writer);
 }
 
 fn runASM(
