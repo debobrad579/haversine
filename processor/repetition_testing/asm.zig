@@ -81,7 +81,8 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     // try testBranchPrediction(&tester, buffer, writer);
     // try cache.testCacheSizes(&tester, buffer, writer);
     // try cache.testCacheSizesNonPowerOf2(&tester, buffer, writer);
-    try cache.testCacheLineAlignment(&tester, buffer, writer);
+    // try cache.testCacheLineAlignment(&tester, buffer, writer);
+    try cache.testCacheIndexing(&tester, buffer, writer);
 }
 
 fn runASM(

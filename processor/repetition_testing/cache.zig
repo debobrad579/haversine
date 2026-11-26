@@ -4,6 +4,7 @@ const t = @import("tester.zig").Tester;
 
 extern fn CacheSizes(len: u64, ptr: [*]u8, mask: u64) void;
 extern fn CacheSizesNonPowerOf2(len: u64, ptr: [*]u8, amount: u64) void;
+extern fn CacheReadStrided(len: u64, ptr: [*]u8, count: u64, stride: u64) void;
 
 const CSVRow = struct {
     kb: u64,
@@ -67,7 +68,7 @@ pub fn testCacheSizesNonPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Write
 
         while (try new_tester.isTesting()) {
             new_tester.begin();
-            CacheSizes(buffer.len, buffer.ptr, bytes - 1);
+            CacheSizesNonPowerOf2(buffer.len, buffer.ptr, bytes - 1);
             new_tester.end();
             new_tester.addBytes(processed);
         }
@@ -120,6 +121,25 @@ pub fn testCacheLineAlignment(tester: *t, buffer: []u8, writer: *std.Io.Writer) 
                 tester.end();
                 tester.addBytes(buffer.len);
             }
+        }
+    }
+}
+
+pub fn testCacheIndexing(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    for (0..9) |cache_lines| {
+        const bytes = 32 * 1024;
+        const stride = cache_lines * 64;
+
+        try writer.print("CacheReadStrided ({d}):\n", .{stride});
+        try writer.flush();
+
+        tester.reset();
+
+        while (try tester.isTesting()) {
+            tester.begin();
+            CacheReadStrided(buffer.len, buffer.ptr, bytes - 1, stride);
+            tester.end();
+            tester.addBytes(buffer.len);
         }
     }
 }
