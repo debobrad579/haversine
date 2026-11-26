@@ -14,7 +14,7 @@ const FillPattern = enum {
 };
 
 const asm_ns = struct {
-    pub extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
+    // pub extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
     // pub extern fn CMPAllBytes(len: u64, ptr: [*]u8) void;
     // pub extern fn DECAllBytes(len: u64, ptr: [*]u8) void;
 
@@ -50,21 +50,10 @@ const asm_ns = struct {
     // pub extern fn Write_8x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_16x2(len: u64, ptr: [*]u8) void;
     // pub extern fn Write_32x2(len: u64, ptr: [*]u8) void;
-
-    pub extern fn L1CacheRead(len: u64, ptr: [*]u8) void;
-    pub extern fn L1CacheReadUnaligned(len: u64, ptr: [*]u8) void;
-    pub extern fn L2CacheRead(len: u64, ptr: [*]u8) void;
-    pub extern fn L2CacheReadUnaligned(len: u64, ptr: [*]u8) void;
-    pub extern fn L3CacheRead(len: u64, ptr: [*]u8) void;
-    pub extern fn L3CacheReadUnaligned(len: u64, ptr: [*]u8) void;
-    pub extern fn MainMemoryRead(len: u64, ptr: [*]u8) void;
-    pub extern fn MainMemoryReadUnaligned(len: u64, ptr: [*]u8) void;
 };
 
 extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
 extern fn ConditionalNOP(len: u64, ptr: [*]u8) void;
-extern fn TestCacheSizesPowerOf2(len: u64, ptr: [*]u8, mask: u64) void;
-extern fn TestCacheSizes(len: u64, ptr: [*]u8, amount: u64) void;
 
 const AsmFn = *const fn (u64, [*]u8) callconv(.c) void;
 
@@ -83,13 +72,16 @@ pub fn testAsm(writer: *std.Io.Writer) !void {
     );
     defer std.posix.munmap(buffer);
 
+    MOVAllBytes(buffer.len, buffer.ptr);
+
     inline for (comptime std.meta.declarations(asm_ns)) |decl| {
         try runASM(&tester, buffer, writer, decl, @field(asm_ns, decl));
     }
 
     // try testBranchPrediction(&tester, buffer, writer);
-    // try cache.testCacheSizesPowerOf2(&tester, buffer, writer);
     // try cache.testCacheSizes(&tester, buffer, writer);
+    // try cache.testCacheSizesNonPowerOf2(&tester, buffer, writer);
+    try cache.testCacheLineAlignment(&tester, buffer, writer);
 }
 
 fn runASM(

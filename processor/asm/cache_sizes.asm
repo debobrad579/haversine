@@ -1,8 +1,12 @@
-global TestCacheSizesPowerOf2
-global TestCacheSizes
+global CacheSizes
+global CacheSizesNonPowerOf2
+global Aligned32
+global Aligned8
+global Aligned16
+global Aligned24
 
 ; rdi = len, rsi = ptr, rdx = mask
-TestCacheSizesPowerOf2:
+CacheSizes:
     xor rax, rax
     align 64
 .loop:
@@ -10,14 +14,18 @@ TestCacheSizesPowerOf2:
     vmovdqu ymm0, [rsi + rax + 0x20]
     vmovdqu ymm0, [rsi + rax + 0x40]
     vmovdqu ymm0, [rsi + rax + 0x60]
-    add rax, 128
+    vmovdqu ymm0, [rsi + rax + 0x80]
+    vmovdqu ymm0, [rsi + rax + 0xa0]
+    vmovdqu ymm0, [rsi + rax + 0xe0]
+    vmovdqu ymm0, [rsi + rax + 0xc0]
+    add rax, 256
     and rax, rdx
-    sub rdi, 128
+    sub rdi, 256
     jnz .loop
     ret
 
 ; rdi = len, rsi = ptr, rdx = amount
-TestCacheSizes:
+CacheSizesNonPowerOf2:
     xor rax, rax
     xor rcx, rcx
     align 64

@@ -2,30 +2,26 @@ const std = @import("std");
 
 const t = @import("tester.zig").Tester;
 
-extern fn MOVAllBytes(len: u64, ptr: [*]u8) void;
-extern fn ConditionalNOP(len: u64, ptr: [*]u8) void;
-extern fn TestCacheSizesPowerOf2(len: u64, ptr: [*]u8, mask: u64) void;
-extern fn TestCacheSizes(len: u64, ptr: [*]u8, amount: u64) void;
+extern fn CacheSizes(len: u64, ptr: [*]u8, mask: u64) void;
+extern fn CacheSizesNonPowerOf2(len: u64, ptr: [*]u8, amount: u64) void;
 
 const CSVRow = struct {
     kb: u64,
     throughput: f64,
 };
 
-pub fn testCacheSizesPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    MOVAllBytes(buffer.len, buffer.ptr);
-
+pub fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
     var csv: [21]CSVRow = undefined;
 
     for (10..31) |power| {
         const bytes = (@as(u64, 1) << @as(u6, @intCast(power)));
 
         if (bytes >= 1024 * 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}GiB):\n", .{bytes / 1024 / 1024 / 1024});
+            try writer.print("CacheSizes ({d}GiB):\n", .{bytes / 1024 / 1024 / 1024});
         } else if (bytes >= 1024 * 1024) {
-            try writer.print("TestCacheSizes ({d}MiB):\n", .{bytes / 1024 / 1024});
+            try writer.print("CacheSizes ({d}MiB):\n", .{bytes / 1024 / 1024});
         } else {
-            try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
+            try writer.print("CacheSizes ({d}KiB):\n", .{bytes / 1024});
         }
         try writer.flush();
 
@@ -33,7 +29,7 @@ pub fn testCacheSizesPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) 
 
         while (try tester.isTesting()) {
             tester.begin();
-            TestCacheSizesPowerOf2(buffer.len, buffer.ptr, bytes - 1);
+            CacheSizes(buffer.len, buffer.ptr, bytes - 1);
             tester.end();
             tester.addBytes(buffer.len);
         }
@@ -50,9 +46,7 @@ pub fn testCacheSizesPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) 
     try writer.flush();
 }
 
-pub fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
-    MOVAllBytes(buffer.len, buffer.ptr);
-
+pub fn testCacheSizesNonPowerOf2(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
     var csv: [128]CSVRow = undefined;
 
     var bytes: u64 = 16 * 1024;
@@ -66,14 +60,14 @@ pub fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
             ((buffer.len + bytes - 1) / bytes) * (bytes / chunk_size) * chunk_size,
         );
 
-        try writer.print("TestCacheSizes ({d}KiB):\n", .{bytes / 1024});
+        try writer.print("CacheSizesNonPowerOf2 ({d}KiB):\n", .{bytes / 1024});
         try writer.flush();
 
         var new_tester = t.init(tester.cpu_freq, 1, processed, writer);
 
         while (try new_tester.isTesting()) {
             new_tester.begin();
-            TestCacheSizes(buffer.len, buffer.ptr, bytes);
+            CacheSizes(buffer.len, buffer.ptr, bytes - 1);
             new_tester.end();
             new_tester.addBytes(processed);
         }
@@ -96,4 +90,36 @@ pub fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
         }
     }
     try writer.flush();
+}
+
+pub fn testCacheLineAlignment(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
+    for ([_][]const u8{
+        "L1 Cache",
+        "L2 Cache",
+        "L3 Cache",
+        "Main Memory",
+    }, [_]u64{
+        32 * 1024,
+        128 * 1024,
+        2 * 1024 * 1024,
+        512 * 1024 * 1024,
+    }) |name, bytes| {
+        for ([_]u64{ 0, 1, 2, 4, 8, 16 }) |alignment| {
+            if (alignment == 0) {
+                try writer.print("{s} Read:\n", .{name});
+            } else {
+                try writer.print("{s} Read (Aligned {d}):\n", .{ name, alignment });
+            }
+            try writer.flush();
+
+            tester.reset();
+
+            while (try tester.isTesting()) {
+                tester.begin();
+                CacheSizes(buffer.len, buffer.ptr + alignment, bytes - 1);
+                tester.end();
+                tester.addBytes(buffer.len);
+            }
+        }
+    }
 }
