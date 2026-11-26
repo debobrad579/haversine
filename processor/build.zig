@@ -83,6 +83,7 @@ pub fn build(b: *std.Build) !void {
         "write_width.asm",
         "cache.asm",
         "non_temporal_write.asm",
+        "prefetch_read.asm",
     };
 
     for (asm_files) |file_name| {
