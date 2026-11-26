@@ -5,6 +5,7 @@ const c = @import("haversine.h");
 
 const json = @import("json.zig");
 const profiler = @import("profiler.zig");
+const readFile = @import("read.zig").readFile;
 
 const EARTH_RADIUS = 6372.8;
 
@@ -31,32 +32,23 @@ pub fn main(init: std.process.Init) !void {
     const path = args[1];
     const answers_path = if (args.len == 3) args[2] else null;
 
-    const dir = std.Io.Dir.cwd();
-    const stat = try dir.statFile(io, path, .{});
-
-    var read_timer = profiler.startTimerBandwidth(@src(), "Read", stat.size);
-
-    const data = try dir.readFileAlloc(
+    const data = try readFile(
         io,
         path,
         gpa,
-        .limited(1024 * 1024 * 1024),
     );
 
     var json_arena: std.heap.ArenaAllocator = .init(arena);
-
-    read_timer.stop();
 
     const json_data = try json.parse(data, &json_arena);
 
     gpa.free(data);
 
     const answers_data = if (answers_path) |answers|
-        try std.Io.Dir.cwd().readFileAlloc(
+        try readFile(
             io,
             answers,
             gpa,
-            .limited(1024 * 1024 * 1024),
         )
     else
         null;
