@@ -22,7 +22,7 @@ pub fn testCacheSizes(tester: *t, buffer: []u8, writer: *std.Io.Writer) !void {
         } else if (bytes >= 1024 * 1024) {
             try writer.print("CacheSizes ({d}MiB):\n", .{bytes / 1024 / 1024});
         } else {
-            try writer.print("CacheSizes ({d}KiB):\n", .{bytes / 1024});
+            try writer.print("CacheSizes ({d}kiB):\n", .{bytes / 1024});
         }
         try writer.flush();
 

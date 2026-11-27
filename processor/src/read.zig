@@ -21,8 +21,7 @@ pub fn readFile(io: std.Io, path: []const u8, allocator: std.mem.Allocator) ![]u
     var reader = file.reader(io, buffer);
 
     while (true) {
-        const bytes_read = try reader.interface.readSliceShort(buffer);
-        if (bytes_read == 0) break;
+        if (try reader.interface.readSliceShort(buffer) == 0) break;
     }
 
     return buffer;

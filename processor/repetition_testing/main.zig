@@ -27,4 +27,6 @@ pub fn main(init: std.process.Init) !void {
     // try read.mmapAllocPopulate(io, stdout_writer);
 
     try testAsm(stdout_writer);
+
+    try read.testReadChunked(io, init.gpa, stdout_writer);
 }
